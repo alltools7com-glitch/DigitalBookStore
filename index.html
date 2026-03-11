@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>📚 DigitalBookStore</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23C9A84C'/><text y='72' x='50' text-anchor='middle' font-size='62'>📚</text></svg>"/>
+  <meta name="theme-color" content="#C9A84C"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>body{margin:0;padding:0;}</style>
+</head>
+<body>
+  <div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const BOOKS = [
+  { id: 1, title: "The Atomic Entrepreneur", author: "James Caldwell", price: 24.99, originalPrice: 49.99, rating: 4.9, reviews: 1284, category: "Business", cover: "BE", color: "#C9A84C", bg: "#1a1208", description: "Unlock the compounding habits of the world's most productive founders. This definitive guide walks you through the exact systems used by 7-figure entrepreneurs to build unstoppable momentum.", pages: 312, format: "PDF + EPUB", bestseller: true, featured: true, toc: ["The Compound Effect", "Morning Architecture", "Deep Work Rituals", "The 90-Day Sprint", "Scaling Your Systems", "Exit Strategies"], benefits: ["Build unbreakable daily habits", "Master deep work in 30 days", "Create automated income streams", "Develop a CEO mindset"] },
+  { id: 2, title: "Quiet Design", author: "Sofia Reinholt", price: 19.99, originalPrice: 34.99, rating: 4.8, reviews: 876, category: "Design", cover: "QD", color: "#7C9FB0", bg: "#080e12", description: "A visual manifesto for creating interfaces that speak softly but sell loudly. Learn the invisible principles behind billion-dollar digital products.", pages: 248, format: "PDF + EPUB", bestseller: true, featured: false, toc: ["The Silence Principle", "White Space Philosophy", "Typography as Voice", "Color Psychology", "Conversion by Design"], benefits: ["Master minimalist UI principles", "Increase conversions by 40%", "Build design systems", "Learn pro Figma workflows"] },
+  { id: 3, title: "Sovereign Mind", author: "Dr. Priya Nair", price: 17.99, originalPrice: 29.99, rating: 4.7, reviews: 2103, category: "Self-Help", cover: "SM", color: "#B8A9C9", bg: "#0d0a14", description: "Reclaim your cognitive sovereignty in an age of infinite distraction. Backed by neuroscience and field-tested by thousands of readers worldwide.", pages: 280, format: "PDF + EPUB", bestseller: false, featured: true, toc: ["The Attention Economy", "Neural Rewiring", "The Focus Protocol", "Emotional Architecture", "Building Mental Fortitude"], benefits: ["Triple your focus span", "Eliminate decision fatigue", "Build emotional resilience", "Sleep optimization system"] },
+  { id: 4, title: "Money Meridian", author: "Carlos Vega", price: 29.99, originalPrice: 59.99, rating: 4.9, reviews: 654, category: "Finance", cover: "MM", color: "#4CAF82", bg: "#060f0a", description: "The GPS for your financial freedom journey. From zero savings to financial independence in 5 years using proven asymmetric strategies.", pages: 356, format: "PDF + EPUB", bestseller: true, featured: true, toc: ["Financial Diagnosis", "The Income Ladder", "Investment Vehicles", "Tax Optimization", "The FIRE Method", "Generational Wealth"], benefits: ["Build a 6-figure portfolio", "Eliminate all bad debt", "Generate passive income", "Retire 20 years early"] },
+  { id: 5, title: "Code Alchemy", author: "Yuki Tanaka", price: 34.99, originalPrice: 64.99, rating: 4.8, reviews: 432, category: "Technology", cover: "CA", color: "#E86B4F", bg: "#140800", description: "Transform raw code into elegant, scalable software that stands the test of time. The master craftsman's guide to modern software architecture.", pages: 420, format: "PDF + EPUB", bestseller: false, featured: false, toc: ["Clean Code Principles", "System Design Patterns", "Performance Optimization", "Security Architecture", "DevOps Mastery", "AI Integration"], benefits: ["Write 10x faster code", "Master system design", "Pass senior interviews", "Build production apps"] },
+  { id: 6, title: "The Content Oracle", author: "Maya Stone", price: 22.99, originalPrice: 44.99, rating: 4.6, reviews: 987, category: "Marketing", cover: "CO", color: "#F4A261", bg: "#140900", description: "Predict what your audience wants before they know it themselves. The data-driven content strategy that built a 10M follower empire.", pages: 292, format: "PDF + EPUB", bestseller: false, featured: false, toc: ["Content Psychology", "The Viral Formula", "SEO Alchemy", "Platform Mastery", "Monetization Secrets", "Scale & Automate"], benefits: ["Viral content framework", "10x organic reach", "Monetize any audience", "Automate content creation"] },
+  { id: 7, title: "Prompt Mastery", author: "Lena Fischer", price: 27.99, originalPrice: 54.99, rating: 4.9, reviews: 2341, category: "AI Tools", cover: "PM", color: "#A78BFA", bg: "#0d0814", description: "Unlock the full power of ChatGPT, Claude, Gemini and Midjourney with proven prompt engineering frameworks used by top AI practitioners.", pages: 320, format: "PDF + EPUB", bestseller: true, featured: true, toc: ["Prompt Architecture", "Chain-of-Thought Techniques", "Role & Context Injection", "Image Prompt Mastery", "Automation Flows", "AI Agent Building"], benefits: ["Write perfect prompts every time", "10x your AI output quality", "Build custom AI workflows", "Master image generation"] },
+  { id: 8, title: "AI Side Hustle Blueprint", author: "Marcus Webb", price: 21.99, originalPrice: 39.99, rating: 4.7, reviews: 1102, category: "AI Tools", cover: "AI", color: "#67E8F9", bg: "#030f13", description: "How to earn $5K/month using free AI tools. Step-by-step playbooks for freelancers, creators, and solopreneurs in 2025.", pages: 256, format: "PDF + EPUB", bestseller: false, featured: false, toc: ["AI Freelance Stack", "ChatGPT for Clients", "AI Content Factories", "Automation Income", "Pricing Your AI Work", "Scale to Agency"], benefits: ["Start earning in 30 days", "Build AI-powered services", "Find high-paying clients", "Automate 80% of your work"] },
+  { id: 9, title: "The Magic Reading Tree", author: "Emma Brightwell", price: 9.99, originalPrice: 19.99, rating: 4.9, reviews: 3210, category: "Kids", cover: "MR", color: "#34D399", bg: "#021009", description: "A whimsical adventure through the Enchanted Forest where young readers discover the joy of books and imagination. Ages 5–10.", pages: 96, format: "PDF + EPUB", bestseller: true, featured: false, toc: ["The First Branch", "The Talking Owl", "Lost in the Pages", "The Bookworm Kingdom", "A Story of Your Own"], benefits: ["Boosts early reading skills", "Sparks imagination", "Fun vocabulary building", "Colorful illustrations"] },
+  { id: 10, title: "Little Scientists: Space!", author: "Dr. Amy Zhou", price: 11.99, originalPrice: 22.99, rating: 4.8, reviews: 1876, category: "Kids", cover: "LS", color: "#60A5FA", bg: "#040c16", description: "Blast off into the universe! An interactive guide to planets, stars, black holes, and rockets for curious kids aged 6–12.", pages: 120, format: "PDF + EPUB", bestseller: false, featured: false, toc: ["Our Solar System", "Stars and Galaxies", "How Rockets Work", "Black Holes Explained", "Be an Astronaut"], benefits: ["STEM learning made fun", "Interactive quizzes", "Fun experiments at home", "Inspires future scientists"] },
+  { id: 11, title: "Desire & Devotion", author: "Isabella Vance", price: 14.99, originalPrice: 29.99, rating: 4.8, reviews: 4502, category: "18+", cover: "DD", color: "#F472B6", bg: "#14020d", description: "A sizzling contemporary romance between a billionaire CEO and the headstrong journalist determined to expose him. Steamy, witty, and utterly addictive.", pages: 388, format: "PDF + EPUB", bestseller: true, featured: false, toc: ["First Encounter", "Conflict of Interest", "Behind Closed Doors", "Secrets Unraveled", "The Breaking Point", "Surrender"], benefits: ["Steamy romance with depth", "Strong character arcs", "Gripping plot twists", "Satisfying HEA ending"] },
+  { id: 12, title: "Midnight Confessions", author: "Scarlett Monroe", price: 12.99, originalPrice: 24.99, rating: 4.7, reviews: 2987, category: "18+", cover: "MC", color: "#FB7185", bg: "#140208", description: "Five strangers, one luxury resort, and secrets that unravel after dark. An intoxicating blend of mystery, passion, and forbidden desire.", pages: 344, format: "PDF + EPUB", bestseller: false, featured: false, toc: ["Arrivals", "First Night", "Temptation", "Confessions", "Betrayal", "Last Dawn"], benefits: ["Escapist page-turner", "Multiple POV storytelling", "Mystery + romance blend", "Emotionally rich narrative"] },
+  { id: 13, title: "Body Revolution 90", author: "Coach Tyler Banks", price: 23.99, originalPrice: 47.99, rating: 4.8, reviews: 1654, category: "Health & Fitness", cover: "BR", color: "#FB923C", bg: "#120600", description: "Transform your body in 90 days with science-backed workouts and nutrition plans designed for real people with real schedules.", pages: 298, format: "PDF + EPUB", bestseller: true, featured: false, toc: ["Fitness Assessment", "Weeks 1–4: Foundation", "Weeks 5–8: Intensity", "Weeks 9–12: Peak", "Nutrition Blueprint", "Recovery & Sleep"], benefits: ["Full 90-day workout plan", "Meal prep made simple", "No gym required option", "Track real measurable results"] },
+  { id: 14, title: "The Mindful Athlete", author: "Dr. Serena Cole", price: 18.99, originalPrice: 34.99, rating: 4.7, reviews: 892, category: "Health & Fitness", cover: "MA", color: "#4ADE80", bg: "#03100a", description: "Harness the mental edge that separates good athletes from great ones. Meditation, visualization, and flow-state protocols for peak performance.", pages: 242, format: "PDF + EPUB", bestseller: false, featured: false, toc: ["The Mental Game", "Breathing for Performance", "Visualization Protocols", "Flow State Training", "Pre-Game Rituals", "Recovery Mindset"], benefits: ["Eliminate performance anxiety", "Enter flow state on demand", "Build mental toughness", "Faster recovery mindset"] },
+  { id: 15, title: "Fat to Fit: The Real Way", author: "Dr. Nia Okafor", price: 19.99, originalPrice: 39.99, rating: 4.9, reviews: 3105, category: "Weight Loss", cover: "FF", color: "#FBBF24", bg: "#120e00", description: "The no-BS guide to sustainable fat loss based on metabolic science — no crash diets, no magic pills, just results that last a lifetime.", pages: 274, format: "PDF + EPUB", bestseller: true, featured: false, toc: ["Understanding Metabolism", "Caloric Truth", "The Hunger Hormones", "Sustainable Meal Plans", "Movement That Works", "Mindset for Life"], benefits: ["Lose weight and keep it off", "Understand your hormones", "No restrictive dieting", "Science-based meal plans"] },
+  { id: 16, title: "The Gut Reset", author: "Dr. Hannah Brooks", price: 16.99, originalPrice: 32.99, rating: 4.8, reviews: 1423, category: "Weight Loss", cover: "GR", color: "#86EFAC", bg: "#030f06", description: "Heal your gut, reset your metabolism, and lose weight naturally. A 30-day protocol backed by the latest microbiome research.", pages: 228, format: "PDF + EPUB", bestseller: false, featured: false, toc: ["The Gut-Weight Connection", "The 30-Day Reset Plan", "Probiotic Power Foods", "Inflammation & Fat", "Recipes & Meal Prep", "Long-Term Maintenance"], benefits: ["Heal your digestive system", "Reduce bloating fast", "Boost metabolism naturally", "30-day step-by-step plan"] },
+];
+const CATEGORIES = [
+  { name: "Business", icon: "📈", count: 124, color: "#C9A84C" },
+  { name: "Design", icon: "🎨", count: 89, color: "#7C9FB0" },
+  { name: "Self-Help", icon: "🧠", count: 156, color: "#B8A9C9" },
+  { name: "Finance", icon: "💰", count: 98, color: "#4CAF82" },
+  { name: "Technology", icon: "⚡", count: 203, color: "#E86B4F" },
+  { name: "Marketing", icon: "🎯", count: 77, color: "#F4A261" },
+  { name: "AI Tools", icon: "🤖", count: 64, color: "#A78BFA" },
+  { name: "Kids", icon: "🧸", count: 112, color: "#34D399" },
+  { name: "18+", icon: "🔞", count: 58, color: "#F472B6" },
+  { name: "Health & Fitness", icon: "💪", count: 143, color: "#FB923C" },
+  { name: "Weight Loss", icon: "⚖️", count: 91, color: "#FBBF24" },
+];
+const TESTIMONIALS = [
+  { name: "Rachel Morrison", role: "Startup Founder", text: "Money Meridian completely transformed my relationship with investing. Within 8 months I had my first $50K portfolio. Worth every cent.", avatar: "RM", book: "Money Meridian" },
+  { name: "David Chen", role: "UX Designer", text: "Quiet Design is the book I wish existed when I started. It changed how I approach every single project. My conversion rates went up 60%.", avatar: "DC", book: "Quiet Design" },
+  { name: "Aisha Patel", role: "Product Manager", text: "Sovereign Mind gave me back 3 hours of deep focus every day. I've read 40+ productivity books. This is the only one that actually worked.", avatar: "AP", book: "Sovereign Mind" },
+];
+
+const GlobalStyles = ({ dark }) => (
+  <style>{`
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{
+      --bg:${dark?"#0a0a0b":"#faf9f7"};--bg2:${dark?"#111113":"#f0ede8"};--bg3:${dark?"#18181b":"#e8e4dd"};
+      --surface:${dark?"#1c1c1f":"#ffffff"};--surface2:${dark?"#242428":"#f5f3ef"};
+      --border:${dark?"rgba(255,255,255,0.08)":"rgba(0,0,0,0.09)"};
+      --text:${dark?"#f0ede8":"#1a1714"};--text2:${dark?"#8b8882":"#6b6560"};--text3:${dark?"#5a5752":"#9b9590"};
+      --gold:#C9A84C;--gold2:#e8c96a;--red:#e05c4b;--green:#4CAF82;--blue:#7C9FB0;
+      --radius:12px;--radius-lg:20px;
+      --shadow:${dark?"0 4px 32px rgba(0,0,0,0.4)":"0 4px 32px rgba(0,0,0,0.08)"};
+      --shadow-lg:${dark?"0 20px 60px rgba(0,0,0,0.5)":"0 20px 60px rgba(0,0,0,0.12)"};
+    }
+    html{scroll-behavior:smooth;}
+    body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;line-height:1.6;transition:background .3s,color .3s;}
+    ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--gold);border-radius:3px}
+    .playfair{font-family:'Playfair Display',serif}.mono{font-family:'DM Mono',monospace}.gold{color:var(--gold)}
+    .btn-gold{background:linear-gradient(135deg,#C9A84C,#e8c96a);color:#0a0807;font-weight:600;border:none;cursor:pointer;border-radius:8px;transition:all .2s;font-family:'DM Sans',sans-serif;letter-spacing:.02em}
+    .btn-gold:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(201,168,76,.35);filter:brightness(1.08)}
+    .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);cursor:pointer;border-radius:8px;transition:all .2s;font-family:'DM Sans',sans-serif}
+    .btn-outline:hover{border-color:var(--gold);color:var(--gold)}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg)}
+    .tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase}
+    .fade-in{animation:fadeIn .4s ease both}
+    .star{color:#f59e0b}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+    @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,.4)}50%{box-shadow:0 0 0 12px rgba(201,168,76,0)}}
+    @keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+    input,textarea,select{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;border-radius:8px;padding:10px 14px;font-size:14px;width:100%;transition:border .2s;outline:none}
+    input:focus,textarea:focus,select:focus{border-color:var(--gold)}
+    label{font-size:13px;font-weight:500;color:var(--text2);display:block;margin-bottom:6px}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+    @media(max-width:768px){.grid-2{grid-template-columns:1fr}}
+
+    /* ===== MOBILE RESPONSIVE ===== */
+    @media(max-width:768px){
+      /* Nav */
+      .nav-links{display:none!important}
+      .nav-desktop-right{display:none!important}
+      .nav-mobile-icons{display:flex!important}
+      .hamburger{display:flex!important}
+
+      /* Hero */
+      .hero-grid{grid-template-columns:1fr!important;gap:32px!important}
+      .hero-books{justify-content:center!important;gap:12px!important}
+      .hero-books > div{transform:none!important}
+      .hero-stats{gap:20px!important}
+      .hero-btns{flex-direction:column!important;gap:10px!important}
+      .hero-btns button{width:100%!important;text-align:center!important}
+
+      /* Sections padding */
+      section{padding:48px 16px!important}
+
+      /* Book grid */
+      .book-grid{grid-template-columns:1fr!important}
+      .book-grid-store{grid-template-columns:1fr 1fr!important}
+
+      /* Category grid */
+      .cat-grid{grid-template-columns:repeat(3,1fr)!important}
+
+      /* Testimonials */
+      .test-grid{grid-template-columns:1fr!important}
+
+      /* Book detail page */
+      .book-detail-grid{grid-template-columns:1fr!important;gap:24px!important}
+      .book-sticky{position:static!important}
+
+      /* Contact page */
+      .contact-grid{grid-template-columns:1fr!important}
+
+      /* Checkout */
+      .checkout-grid{grid-template-columns:1fr!important}
+      .payment-grid{grid-template-columns:1fr 1fr!important}
+      .order-summary-card{position:static!important}
+
+      /* Footer */
+      .footer-grid{grid-template-columns:1fr 1fr!important}
+
+      /* Store filters */
+      .store-filters{flex-direction:column!important;align-items:stretch!important}
+      .filter-cats{flex-wrap:wrap!important;gap:6px!important}
+    }
+
+    @media(max-width:480px){
+      .book-grid-store{grid-template-columns:1fr!important}
+      .cat-grid{grid-template-columns:repeat(2,1fr)!important}
+      .footer-grid{grid-template-columns:1fr!important}
+    }
+  `}</style>
+);
+
+const Stars = ({ rating, size=13 }) => (
+  <span style={{fontSize:size}}>{"★".repeat(Math.floor(rating))}{"☆".repeat(5-Math.floor(rating))}</span>
+);
+
+const BookCover = ({ book, size="md" }) => {
+  const sizes = { sm:{w:80,h:110,fs:18,sub:11}, md:{w:140,h:195,fs:28,sub:13}, lg:{w:220,h:305,fs:42,sub:16}, xl:{w:280,h:390,fs:52,sub:18} };
+  const s = sizes[size];
+  return (
+    <div style={{width:s.w,height:s.h,background:`linear-gradient(145deg,${book.bg},${book.color}22)`,border:`1px solid ${book.color}44`,borderRadius:10,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0,position:"relative",overflow:"hidden",boxShadow:`4px 6px 20px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.08)`}}>
+      <div style={{position:"absolute",inset:0,background:`radial-gradient(circle at 30% 20%,${book.color}15,transparent 60%)`}}/>
+      <div style={{fontFamily:"'Playfair Display',serif",fontSize:s.fs,fontWeight:700,color:book.color,textAlign:"center",lineHeight:1.1,padding:"0 12px",zIndex:1}}>{book.cover}</div>
+      <div style={{fontSize:s.sub-2,color:`${book.color}99`,textAlign:"center",padding:"4px 10px 0",fontFamily:"DM Sans",zIndex:1,fontWeight:500}}>{book.category}</div>
+      <div style={{position:"absolute",bottom:0,left:0,right:0,height:3,background:`linear-gradient(90deg,transparent,${book.color},transparent)`}}/>
+    </div>
+  );
+};
+
+const Nav = ({ page, setPage, dark, setDark, cart, user, setUser }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  return (
+    <nav style={{position:"sticky",top:0,zIndex:1000,background:dark?"rgba(10,10,11,0.95)":"rgba(250,249,247,0.95)",backdropFilter:"blur(20px)",borderBottom:"1px solid var(--border)"}}>
+      <div style={{maxWidth:1280,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:64,padding:"0 16px"}}>
+        {/* Logo */}
+        <div style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",flexShrink:0}} onClick={()=>{setPage("home");setMenuOpen(false);}}>
+          <div style={{width:32,height:32,background:"linear-gradient(135deg,#C9A84C,#e8c96a)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,animation:"float 4s ease-in-out infinite"}}>📚</div>
+          <span className="playfair" style={{fontSize:18,fontWeight:700,letterSpacing:"-0.02em"}}>Digital<span className="gold">Book</span>Store</span>
+        </div>
+        {/* Desktop Nav Links */}
+        <div className="nav-links" style={{display:"flex",alignItems:"center",gap:6}}>
+          {[["home","Home"],["store","Store"],["blog","Blog"]].map(([p,l])=>(
+            <button key={p} onClick={()=>setPage(p)} style={{background:"none",border:"none",color:page===p?"var(--gold)":"var(--text2)",cursor:"pointer",padding:"8px 14px",borderRadius:8,fontSize:14,fontWeight:500,fontFamily:"DM Sans",borderBottom:page===p?"2px solid var(--gold)":"2px solid transparent"}}>{l}</button>
+          ))}
+        </div>
+        {/* Desktop Right */}
+        <div className="nav-desktop-right" style={{display:"flex",alignItems:"center",gap:10}}>
+          <button onClick={()=>setDark(!dark)} style={{background:"var(--surface2)",border:"1px solid var(--border)",color:"var(--text)",cursor:"pointer",width:36,height:36,borderRadius:8,fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>{dark?"☀️":"🌙"}</button>
+          <button onClick={()=>setPage("checkout")} style={{background:"var(--surface2)",border:"1px solid var(--border)",color:"var(--text)",cursor:"pointer",width:36,height:36,borderRadius:8,fontSize:16,position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            🛒{cart.length>0&&<span style={{position:"absolute",top:-4,right:-4,background:"var(--gold)",color:"#0a0807",borderRadius:"50%",width:18,height:18,fontSize:10,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{cart.length}</span>}
+          </button>
+          {user?<button onClick={()=>setPage("dashboard")} className="btn-gold" style={{padding:"8px 16px",fontSize:13}}>Dashboard</button>:<button onClick={()=>setPage("auth")} className="btn-gold" style={{padding:"8px 16px",fontSize:13}}>Sign In</button>}
+
+        </div>
+        {/* Mobile Right Icons */}
+        <div className="nav-mobile-icons" style={{display:"none",alignItems:"center",gap:8}}>
+          <button onClick={()=>setPage("checkout")} style={{background:"var(--surface2)",border:"1px solid var(--border)",color:"var(--text)",cursor:"pointer",width:36,height:36,borderRadius:8,fontSize:16,position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            🛒{cart.length>0&&<span style={{position:"absolute",top:-4,right:-4,background:"var(--gold)",color:"#0a0807",borderRadius:"50%",width:18,height:18,fontSize:10,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{cart.length}</span>}
+          </button>
+          {/* Hamburger */}
+          <button className="hamburger" onClick={()=>setMenuOpen(!menuOpen)} style={{background:"var(--surface2)",border:"1px solid var(--border)",color:"var(--text)",cursor:"pointer",width:36,height:36,borderRadius:8,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:4,padding:8}}>
+            <span style={{display:"block",width:18,height:2,background:"var(--text)",borderRadius:2,transition:"all .25s",transform:menuOpen?"rotate(45deg) translate(4px,4px)":"none"}}/>
+            <span style={{display:"block",width:18,height:2,background:"var(--text)",borderRadius:2,transition:"all .25s",opacity:menuOpen?0:1}}/>
+            <span style={{display:"block",width:18,height:2,background:"var(--text)",borderRadius:2,transition:"all .25s",transform:menuOpen?"rotate(-45deg) translate(4px,-4px)":"none"}}/>
+          </button>
+        </div>
+      </div>
+      {/* Mobile Dropdown Menu */}
+      {menuOpen&&(
+        <div style={{background:dark?"rgba(10,10,11,0.98)":"rgba(250,249,247,0.98)",borderTop:"1px solid var(--border)",padding:"12px 16px 20px",display:"flex",flexDirection:"column",gap:4}}>
+          {[["home","🏠 Home"],["store","📚 Store"],["blog","✍️ Blog"],["faq","❓ FAQ"],["contact","📬 Contact"]].map(([p,l])=>(
+            <button key={p} onClick={()=>{setPage(p);setMenuOpen(false);}} style={{background:page===p?"rgba(201,168,76,0.12)":"none",border:"none",color:page===p?"var(--gold)":"var(--text)",cursor:"pointer",padding:"12px 16px",borderRadius:10,fontSize:15,fontWeight:500,fontFamily:"DM Sans",textAlign:"left",borderLeft:page===p?"3px solid var(--gold)":"3px solid transparent"}}>{l}</button>
+          ))}
+          <div style={{height:1,background:"var(--border)",margin:"8px 0"}}/>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",padding:"4px 0"}}>
+            <button onClick={()=>setDark(!dark)} style={{flex:1,background:"var(--surface2)",border:"1px solid var(--border)",color:"var(--text)",cursor:"pointer",padding:"10px",borderRadius:8,fontSize:13,fontFamily:"DM Sans"}}>{dark?"☀️ Light Mode":"🌙 Dark Mode"}</button>
+            {user
+              ?<button onClick={()=>{setPage("dashboard");setMenuOpen(false);}} className="btn-gold" style={{flex:1,padding:"10px",fontSize:13}}>Dashboard</button>
+              :<button onClick={()=>{setPage("auth");setMenuOpen(false);}} className="btn-gold" style={{flex:1,padding:"10px",fontSize:13}}>Sign In</button>
+            }
+          </div>
+
+        </div>
+      )}
+    </nav>
+  );
+};
+
+const HomePage = ({ setPage, setSelectedBook, cart, setCart }) => {
+  const [email, setEmail] = useState("");
+  const [subbed, setSubbed] = useState(false);
+  const featured = BOOKS.filter(b=>b.featured);
+  return (
+    <div>
+      <section style={{padding:"80px 24px 100px",background:"var(--bg)",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:-200,right:-200,width:600,height:600,background:"radial-gradient(circle,rgba(201,168,76,0.07) 0%,transparent 70%)",pointerEvents:"none"}}/>
+        <div style={{maxWidth:1280,margin:"0 auto",display:"grid",gridTemplateColumns:"1fr 1fr",gap:60,alignItems:"center"}} className="hero-grid">
+          <div className="fade-in">
+            <div className="tag" style={{background:"rgba(201,168,76,0.15)",color:"var(--gold)",marginBottom:20}}>🔥 Over 50,000 readers worldwide</div>
+            <h1 className="playfair" style={{fontSize:"clamp(36px,5vw,64px)",fontWeight:700,lineHeight:1.1,marginBottom:20,letterSpacing:"-0.03em"}}>
+              Knowledge That<br/><em style={{color:"var(--gold)",fontStyle:"italic"}}>Compounds</em><br/>Like Interest
+            </h1>
+            <p style={{fontSize:17,color:"var(--text2)",lineHeight:1.7,maxWidth:480,marginBottom:36}}>Curated eBooks by the world's leading thinkers in business, design, finance, and technology. Buy once, download forever.</p>
+            <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:40}} className="hero-btns">
+              <button className="btn-gold" style={{padding:"14px 28px",fontSize:15}} onClick={()=>setPage("store")}>Browse Library →</button>
+              <button className="btn-outline" style={{padding:"14px 28px",fontSize:15}} onClick={()=>setPage("store")}>View Bestsellers</button>
+            </div>
+            <div style={{display:"flex",gap:32}} className="hero-stats">
+              {[["12K+","eBooks Sold"],["500+","5-Star Reviews"],["98%","Satisfaction Rate"]].map(([n,l])=>(
+                <div key={l}><div style={{fontSize:24,fontWeight:700,color:"var(--gold)",fontFamily:"DM Mono"}}>{n}</div><div style={{fontSize:12,color:"var(--text3)"}}>{l}</div></div>
+              ))}
+            </div>
+          </div>
+          <div style={{display:"flex",gap:20,justifyContent:"center",alignItems:"center",flexWrap:"wrap"}} className="fade-in hero-books">
+            {featured.map((book,i)=>(
+              <div key={book.id} onClick={()=>{setSelectedBook(book);setPage("book");}} style={{cursor:"pointer",transform:i===1?"translateY(-20px) rotate(2deg)":i===0?"rotate(-3deg)":"rotate(1deg)",transition:"transform 0.3s",filter:"drop-shadow(0 20px 40px rgba(0,0,0,0.4))"}} onMouseEnter={e=>e.currentTarget.style.transform="translateY(-8px) rotate(0deg) scale(1.04)"} onMouseLeave={e=>e.currentTarget.style.transform=i===1?"translateY(-20px) rotate(2deg)":i===0?"rotate(-3deg)":"rotate(1deg)"}>
+                <BookCover book={book} size="lg"/>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <div style={{background:"linear-gradient(135deg,var(--gold),#e8c96a)",padding:"12px 0",overflow:"hidden",whiteSpace:"nowrap"}}>
+        <div style={{display:"inline-block",animation:"marquee 20s linear infinite"}}>
+          {[...Array(4)].map((_,i)=><span key={i} style={{color:"#0a0807",fontWeight:600,fontSize:13,letterSpacing:"0.05em",marginRight:60}}>📚 INSTANT DOWNLOAD &nbsp;•&nbsp; LIFETIME ACCESS &nbsp;•&nbsp; 30-DAY MONEY BACK &nbsp;•&nbsp; SECURE CHECKOUT &nbsp;•&nbsp; PDF + EPUB FORMAT &nbsp;•&nbsp; ALL DEVICES SUPPORTED </span>)}
+        </div>
+      </div>
+
+      <section style={{padding:"80px 24px",background:"var(--bg2)"}}>
+        <div style={{maxWidth:1280,margin:"0 auto"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:40}}>
+            <div>
+              <div className="tag" style={{background:"rgba(201,168,76,0.15)",color:"var(--gold)",marginBottom:10}}>Bestsellers</div>
+              <h2 className="playfair" style={{fontSize:"clamp(28px,3vw,42px)",fontWeight:700}}>Readers Can't Put Down</h2>
+            </div>
+            <button className="btn-outline" style={{padding:"10px 20px",fontSize:13}} onClick={()=>setPage("store")}>View All →</button>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:24}} className="book-grid">
+            {BOOKS.map(book=>(
+              <div key={book.id} className="card fade-in" style={{padding:20,cursor:"pointer",transition:"transform .2s,box-shadow .2s"}} onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-4px)";e.currentTarget.style.boxShadow="var(--shadow-lg)"}} onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow=""}} onClick={()=>{setSelectedBook(book);setPage("book");}}>
+                <div style={{display:"flex",gap:16,marginBottom:16}}>
+                  <BookCover book={book} size="sm"/>
+                  <div style={{flex:1}}>
+                    {book.bestseller&&<div className="tag" style={{background:"rgba(201,168,76,0.15)",color:"var(--gold)",marginBottom:6}}>Bestseller</div>}
+                    <h3 style={{fontFamily:"Playfair Display",fontSize:15,fontWeight:600,lineHeight:1.3,marginBottom:4}}>{book.title}</h3>
+                    <p style={{fontSize:12,color:"var(--text2)",marginBottom:8}}>by {book.author}</p>
+                    <div style={{display:"flex",gap:6,alignItems:"center"}}><span className="star" style={{fontSize:12}}><Stars rating={book.rating} size={11}/></span><span style={{fontSize:11,color:"var(--text3)"}}>({book.reviews.toLocaleString()})</span></div>
+                  </div>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div><span style={{fontSize:18,fontWeight:700,color:"var(--gold)",fontFamily:"DM Mono"}}>${book.price}</span><span style={{fontSize:12,color:"var(--text3)",textDecoration:"line-through",marginLeft:6}}>${book.originalPrice}</span></div>
+                  <button className="btn-gold" style={{padding:"8px 14px",fontSize:12}} onClick={e=>{e.stopPropagation();if(!cart.find(c=>c.id===book.id))setCart([...cart,book]);}}>{cart.find(c=>c.id===book.id)?"✓ Added":"Add to Cart"}</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section style={{padding:"80px 24px",background:"var(--bg)"}}>
+        <div style={{maxWidth:1280,margin:"0 auto"}}>
+          <div style={{textAlign:"center",marginBottom:50}}>
+            <div className="tag" style={{background:"rgba(201,168,76,0.15)",color:"var(--gold)",marginBottom:10}}>Categories</div>
+            <h2 className="playfair" style={{fontSize:"clamp(28px,3vw,42px)",fontWeight:700}}>Browse by Genre</h2>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:16}} className="cat-grid">
+            {CATEGORIES.map(cat=>(
+              <div key={cat.name} className="card" style={{padding:"24px 16px",textAlign:"center",cursor:"pointer",transition:"all .2s"}} onMouseEnter={e=>{e.currentTarget.style.borderColor=cat.color;e.currentTarget.style.background=`${cat.color}11`;e.currentTarget.style.transform="translateY(-3px)"}} onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border)";e.currentTarget.style.background="var(--surface)";e.currentTarget.style.transform=""}} onClick={()=>setPage("store")}>
+                <div style={{fontSize:32,marginBottom:10}}>{cat.icon}</div>
+                <div style={{fontWeight:600,fontSize:14,marginBottom:4}}>{cat.name}</div>
+                <div style={{fontSize:12,color:"var(--text3)"}}>{cat.count} books</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section style={{padding:"80px 24px",background:"var(--bg2)"}}>
+        <div style={{maxWidth:1280,margin:"0 auto"}}>
+          <div style={{textAlign:"center",marginBottom:50}}>
+            <div className="tag" style={{background:"rgba(201,168,76,0.15)",color:"var(--gold)",marginBottom:10}}>Reviews</div>
+            <h2 className="playfair" style={{fontSize:"clamp(28px,3vw,42px)",fontWeight:700}}>What Readers Say</h2>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:24}} className="test-grid">
+            {TESTIMONIALS.map((t,i)=>(
+              <div key={i} className="card fade-in" style={{padding:28}}>
+                <div style={{color:"var(--gold)",fontSize:20,marginBottom:12}}>★★★★★</div>
+                <p style={{fontSize:15,lineHeight:1.7,color:"var(--text2)",marginBottom:20,fontStyle:"italic"}}>"{t.text}"</p>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div style={{display:"flex",gap:12,alignItems:"center"}}>
+                    <div style={{width:40,height:40,background:"linear-gradient(135deg,var(--gold),#e8c96a)",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#0a0807"}}>{t.avatar}</div>
+                    <div><div style={{fontWeight:600,fontSize:14}}>{t.name}</div><div style={{fontSize:12,color:"var(--text3)"}}>{t.role}</div></div>
+                  </div>
+                  <div className="tag" style={{background:"var(--bg3)",color:"var(--text2)",fontSize:10}}>{t.book}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section style={{padding:"80px 24px",background:"linear-gradient(135deg,var(--bg),var(--bg2))"}}>
+        <div style={{maxWidth:600,margin:"0 auto",textAlign:"center"}}>
+          <div style={{fontSize:48,marginBottom:16}}>📬</div>
+          <h2 className="playfair" style={{fontSize:"clamp(24px,3vw,36px)",fontWeight:700,marginBottom:12}}>Get Free eBook Previews</h2>
+          <p style={{color:"var(--text2)",marginBottom:28,lineHeight:1.6}}>Join 12,000+ readers who get weekly book summaries, exclusive discounts, and free chapter previews.</p>
+          {subbed?<div style={{background:"rgba(76,175,130,0.15)",border:"1px solid #4CAF82",borderRadius:12,padding:"16px 24px",color:"#4CAF82",fontWeight:600}}>✓ You're in! Check your inbox for a free welcome gift.</div>:(
+            <div style={{display:"flex",gap:10,maxWidth:480,margin:"0 auto"}}>
+              <input placeholder="Enter your email address..." value={email} onChange={e=>setEmail(e.target.value)} style={{flex:1}}/>
+              <button className="btn-gold" style={{padding:"10px 20px",fontSize:14,whiteSpace:"nowrap"}} onClick={()=>setSubbed(true)}>Subscribe Free</button>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section style={{padding:"80px 24px",background:"var(--bg3)",textAlign:"center"}}>
+        <div style={{maxWidth:700,margin:"0 auto"}}>
+          <h2 className="playfair" style={{fontSize:"clamp(28px,4vw,48px)",fontWeight:700,marginBottom:16}}>Start Reading <em style={{color:"var(--gold)"}}>Today</em></h2>
+          <p style={{color:"var(--text2)",fontSize:17,marginBottom:32}}>Instant download after purchase. All formats. All devices. For life.</p>
+          <button className="btn-gold" style={{padding:"16px 36px",fontSize:16}} onClick={()=>setPage("store")}>Explore All eBooks →</button>
+        </div>
+      </section>
+
+      <footer style={{background:"var(--bg)",borderTop:"1px solid var(--border)",padding:"40px 24px"}}>
+        <div style={{maxWidth:1280,margin:"0 auto",display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:32}} className="footer-grid">
+          <div>
+            <div className="playfair" style={{fontSize:18,fontWeight:700,marginBottom:12}}>Digital<span className="gold">Book</span>Store</div>
+            <p style={{fontSize:13,color:"var(--text3)",lineHeight:1.7}}>Premium eBooks for ambitious readers. Learn from the best minds in business, design, and life.</p>
+          </div>
+          {[
+            ["Explore",[["Home","home"],["Store","store"],["Blog","blog"],["Bestsellers","store"]]],
+            ["Account",[["Sign In","auth"],["My Library","dashboard"],["Purchase History","dashboard"],["Settings","dashboard"]]],
+            ["Support",[["FAQ","faq"],["Contact","contact"],["Refund Policy","refund"],["Privacy Policy","privacy"]]]
+          ].map(([title,links])=>(
+            <div key={title}>
+              <div style={{fontWeight:600,fontSize:13,marginBottom:12,textTransform:"uppercase",letterSpacing:"0.08em",color:"var(--text2)"}}>{title}</div>
+              {links.map(([l,p])=><div key={l} style={{fontSize:13,color:"var(--text3)",marginBottom:8,cursor:"pointer",transition:"color .15s"}} onClick={()=>setPage(p)} onMouseEnter={e=>e.currentTarget.style.color="var(--gold)"} onMouseLeave={e=>e.currentTarget.style.color="var(--text3)"}>{l}</div>)}
+            </div>
+          ))}
+        </div>
+        <div style={{maxWidth:1280,margin:"24px auto 0",paddingTop:20,borderTop:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
+          <span style={{fontSize:12,color:"var(--text3)"}}>© 2025 DigitalBookStore. All rights reserved.</span>
+          <div style={{display:"flex",gap:16}}>{["🔒 SSL Secured","💳 Secure Payments","📱 All Devices"].map(t=><span key={t} style={{fontSize:12,color:"var(--text3)"}}>{t}</span>)}</div>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+const StorePage = ({ setPage, setSelectedBook, cart, setCart }) => {
+  const [search, setSearch] = useState("");
+  const [cat, setCat] = useState("All");
+  const [sort, setSort] = useState("popular");
+  const filtered = BOOKS.filter(b=>(cat==="All"||b.category===cat)&&(b.title.toLowerCase().includes(search.toLowerCase())||b.author.toLowerCase().includes(search.toLowerCase()))).sort((a,b)=>sort==="price-asc"?a.price-b.price:sort==="price-desc"?b.price-a.price:sort==="rating"?b.rating-a.rating:b.reviews-a.reviews);
+  return (
+    <div style={{maxWidth:1280,margin:"0 auto",padding:"40px 24px"}}>
+      <div style={{marginBottom:40}}><h1 className="playfair" style={{fontSize:"clamp(28px,3vw,44px)",fontWeight:700,marginBottom:8}}>eBook Library</h1><p style={{color:"var(--text2)"}}>Browse our curated collection of premium digital books</p></div>
+      <div style={{display:"flex",gap:12,marginBottom:32,flexWrap:"wrap",alignItems:"center"}} className="store-filters">
+        <input placeholder="🔍  Search books or authors..." value={search} onChange={e=>setSearch(e.target.value)} style={{flex:"1 1 260px",maxWidth:380}}/>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          {["All",...CATEGORIES.map(c=>c.name)].map(c=><button key={c} onClick={()=>setCat(c)} style={{padding:"8px 14px",borderRadius:8,fontSize:13,border:`1px solid ${cat===c?"var(--gold)":"var(--border)"}`,background:cat===c?"rgba(201,168,76,0.15)":"var(--surface2)",color:cat===c?"var(--gold)":"var(--text2)",cursor:"pointer",fontFamily:"DM Sans"}}>{c}</button>)}
+        </div>
+        <select value={sort} onChange={e=>setSort(e.target.value)} style={{width:"auto",minWidth:160}}>
+          <option value="popular">Most Popular</option><option value="rating">Highest Rated</option><option value="price-asc">Price: Low to High</option><option value="price-desc">Price: High to Low</option>
+        </select>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:24}} className="book-grid-store">
+        {filtered.map(book=>(
+          <div key={book.id} className="card" style={{overflow:"hidden",cursor:"pointer",transition:"all .25s"}} onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-5px)";e.currentTarget.style.boxShadow="var(--shadow-lg)";e.currentTarget.style.borderColor="rgba(201,168,76,0.3)"}} onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="";e.currentTarget.style.borderColor=""}}>
+            <div style={{background:book.bg,padding:"32px",display:"flex",justifyContent:"center",position:"relative"}} onClick={()=>{setSelectedBook(book);setPage("book");}}>
+              <BookCover book={book} size="md"/>
+              {book.bestseller&&<div className="tag" style={{position:"absolute",top:12,left:12,background:"rgba(201,168,76,0.9)",color:"#0a0807"}}>🔥 Bestseller</div>}
+              <div className="tag" style={{position:"absolute",top:12,right:12,background:"rgba(76,175,130,0.2)",color:"#4CAF82",border:"1px solid rgba(76,175,130,0.3)"}}>-{Math.round((1-book.price/book.originalPrice)*100)}%</div>
+            </div>
+            <div style={{padding:"20px"}}>
+              <div className="tag" style={{background:"var(--bg3)",color:"var(--text3)",marginBottom:10,fontSize:10}}>{book.category}</div>
+              <h3 className="playfair" style={{fontSize:17,fontWeight:600,marginBottom:4,lineHeight:1.3}} onClick={()=>{setSelectedBook(book);setPage("book");}}>{book.title}</h3>
+              <p style={{fontSize:13,color:"var(--text2)",marginBottom:12}}>by {book.author}</p>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:16}}><span className="star"><Stars rating={book.rating} size={12}/></span><span style={{fontSize:12,fontWeight:600}}>{book.rating}</span><span style={{fontSize:12,color:"var(--text3)"}}>({book.reviews.toLocaleString()} reviews)</span></div>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div><span style={{fontSize:20,fontWeight:700,color:"var(--gold)",fontFamily:"DM Mono"}}>${book.price}</span><span style={{fontSize:13,color:"var(--text3)",textDecoration:"line-through",marginLeft:8}}>${book.originalPrice}</span></div>
+                <button className="btn-gold" style={{padding:"9px 16px",fontSize:13}} onClick={()=>{if(!cart.find(c=>c.id===book.id))setCart([...cart,book]);}}>{cart.find(c=>c.id===book.id)?"✓ In Cart":"Buy Now"}</button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const BookPage = ({ book, setPage, cart, setCart }) => {
+  const [tab, setTab] = useState("description");
+  return (
+    <div style={{maxWidth:1280,margin:"0 auto",padding:"40px 24px"}}>
+      <button onClick={()=>setPage("store")} style={{background:"none",border:"none",color:"var(--text2)",cursor:"pointer",fontSize:14,marginBottom:24,fontFamily:"DM Sans",display:"flex",alignItems:"center",gap:6}}>← Back to Store</button>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 2fr",gap:60,marginBottom:60}} className="book-detail-grid">
+        <div>
+          <div style={{position:"sticky",top:80,textAlign:"center"}}>
+            <div style={{display:"inline-block",animation:"float 5s ease-in-out infinite",filter:"drop-shadow(0 24px 48px rgba(0,0,0,0.4))",marginBottom:28}}><BookCover book={book} size="xl"/></div>
+            <div style={{display:"grid",gap:10}}>
+              <button className="btn-gold" style={{padding:"14px",fontSize:15,width:"100%",animation:"pulse 2s infinite"}} onClick={()=>{if(!cart.find(c=>c.id===book.id))setCart([...cart,book]);setPage("checkout");}}>🛒 Buy Now — ${book.price}</button>
+              <button className="btn-outline" style={{padding:"12px",fontSize:14,width:"100%"}} onClick={()=>{if(!cart.find(c=>c.id===book.id))setCart([...cart,book]);}}>{cart.find(c=>c.id===book.id)?"✓ Added to Cart":"+ Add to Cart"}</button>
+            </div>
+            <div style={{marginTop:20,padding:16,background:"var(--surface2)",borderRadius:12,border:"1px solid var(--border)"}}>
+              {[["📄","Format",book.format],["📖","Pages",`${book.pages} pages`],["♾️","Access","Lifetime"],["📱","Devices","All platforms"],["🔒","Security","DRM Protected"]].map(([icon,k,v])=>(
+                <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid var(--border)",fontSize:13}}><span style={{color:"var(--text2)"}}>{icon} {k}</span><span style={{fontWeight:500}}>{v}</span></div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div>
+          <div className="tag" style={{background:"var(--bg3)",color:"var(--text2)",marginBottom:12}}>{book.category}</div>
+          {book.bestseller&&<div className="tag" style={{background:"rgba(201,168,76,0.15)",color:"var(--gold)",marginLeft:8}}>🔥 Bestseller</div>}
+          <h1 className="playfair" style={{fontSize:"clamp(28px,3vw,48px)",fontWeight:700,lineHeight:1.1,margin:"16px 0 8px"}}>{book.title}</h1>
+          <p style={{fontSize:15,color:"var(--text2)",marginBottom:16}}>by <strong>{book.author}</strong></p>
+          <div style={{display:"flex",gap:16,marginBottom:24,flexWrap:"wrap"}}>
+            <div style={{display:"flex",gap:6,alignItems:"center"}}><span className="star"><Stars rating={book.rating}/></span><span style={{fontWeight:700}}>{book.rating}</span><span style={{fontSize:13,color:"var(--text3)"}}>({book.reviews.toLocaleString()} reviews)</span></div>
+            <div style={{display:"flex",gap:8}}><span style={{fontSize:24,fontWeight:700,color:"var(--gold)",fontFamily:"DM Mono"}}>${book.price}</span><span style={{fontSize:16,color:"var(--text3)",textDecoration:"line-through",alignSelf:"flex-end"}}>${book.originalPrice}</span><span className="tag" style={{background:"rgba(76,175,130,0.15)",color:"var(--green)",alignSelf:"center"}}>Save {Math.round((1-book.price/book.originalPrice)*100)}%</span></div>
+          </div>
+          <div style={{display:"flex",gap:4,marginBottom:28,borderBottom:"1px solid var(--border)"}}>
+            {["description","contents","benefits","reviews"].map(t=><button key={t} onClick={()=>setTab(t)} style={{padding:"10px 16px",background:"none",border:"none",color:tab===t?"var(--gold)":"var(--text2)",borderBottom:`2px solid ${tab===t?"var(--gold)":"transparent"}`,cursor:"pointer",fontFamily:"DM Sans",fontSize:14,fontWeight:tab===t?600:400,textTransform:"capitalize",marginBottom:-1}}>{t}</button>)}
+          </div>
+          {tab==="description"&&<div><p style={{fontSize:15,lineHeight:1.8,color:"var(--text2)"}}>{book.description}</p><p style={{fontSize:15,lineHeight:1.8,color:"var(--text2)",marginTop:16}}>This comprehensive guide blends cutting-edge research with actionable frameworks you can implement immediately.</p></div>}
+          {tab==="contents"&&<div><h3 style={{fontWeight:600,marginBottom:16}}>Table of Contents</h3>{book.toc.map((ch,i)=><div key={i} style={{display:"flex",gap:16,padding:"12px 0",borderBottom:"1px solid var(--border)",alignItems:"center"}}><span style={{width:28,height:28,background:"rgba(201,168,76,0.15)",border:"1px solid rgba(201,168,76,0.3)",borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"var(--gold)",flexShrink:0,fontFamily:"DM Mono"}}>{i+1}</span><span style={{fontSize:14}}>{ch}</span></div>)}</div>}
+          {tab==="benefits"&&<div><h3 style={{fontWeight:600,marginBottom:16}}>What You'll Learn</h3>{book.benefits.map((b,i)=><div key={i} style={{display:"flex",gap:12,marginBottom:14,alignItems:"flex-start"}}><div style={{width:24,height:24,background:"rgba(76,175,130,0.15)",border:"1px solid rgba(76,175,130,0.3)",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:"var(--green)",flexShrink:0}}>✓</div><span style={{fontSize:15,lineHeight:1.5}}>{b}</span></div>)}</div>}
+          {tab==="reviews"&&<div>{TESTIMONIALS.map((t,i)=><div key={i} style={{padding:"16px 0",borderBottom:"1px solid var(--border)"}}><div style={{display:"flex",gap:10,marginBottom:8,alignItems:"center"}}><div style={{width:32,height:32,background:"linear-gradient(135deg,var(--gold),#e8c96a)",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#0a0807"}}>{t.avatar}</div><div><div style={{fontWeight:600,fontSize:13}}>{t.name}</div><span className="star" style={{fontSize:11}}>★★★★★</span></div></div><p style={{fontSize:14,lineHeight:1.7,color:"var(--text2)"}}>"{t.text}"</p></div>)}</div>}
+          <div style={{marginTop:36,padding:24,background:"var(--surface2)",borderRadius:16,border:"1px solid var(--border)"}}>
+            <h3 style={{fontWeight:600,marginBottom:16}}>About the Author</h3>
+            <div style={{display:"flex",gap:16,alignItems:"flex-start"}}>
+              <div style={{width:56,height:56,background:`linear-gradient(135deg,${book.color},${book.color}88)`,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Playfair Display",fontSize:20,fontWeight:700,color:"#fff",flexShrink:0}}>{book.author.split(" ").map(n=>n[0]).join("")}</div>
+              <div><div style={{fontWeight:600,marginBottom:4}}>{book.author}</div><div style={{fontSize:13,color:"var(--text2)",lineHeight:1.7}}>Bestselling author and thought leader with 15+ years of experience. Featured in Forbes, Harvard Business Review, and TED.</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ThankYouPage = ({ setPage, books }) => (
+  <div style={{maxWidth:700,margin:"60px auto",padding:"0 24px",textAlign:"center"}}>
+    <div style={{width:80,height:80,background:"rgba(76,175,130,0.15)",border:"2px solid #4CAF82",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:40,margin:"0 auto 24px",animation:"pulse 2s infinite"}}>✓</div>
+    <h1 className="playfair" style={{fontSize:42,fontWeight:700,marginBottom:12}}>Purchase Complete!</h1>
+    <p style={{color:"var(--text2)",fontSize:16,marginBottom:32}}>Your payment was processed successfully. Your eBooks are ready to download instantly.</p>
+    <div className="card" style={{padding:28,marginBottom:28}}>
+      <h3 style={{fontWeight:700,marginBottom:16}}>📥 Your Downloads</h3>
+      {(books&&books.length>0?books:[BOOKS[0]]).map(b=>(
+        <div key={b.id} style={{display:"flex",gap:16,alignItems:"center",padding:"12px 0",borderBottom:"1px solid var(--border)"}}>
+          <BookCover book={b} size="sm"/>
+          <div style={{flex:1,textAlign:"left"}}><div style={{fontWeight:600,marginBottom:2}}>{b.title}</div><div style={{fontSize:12,color:"var(--text3)"}}>{b.format}</div></div>
+          <button className="btn-gold" style={{padding:"10px 16px",fontSize:13}}>⬇ Download</button>
+        </div>
+      ))}
+    </div>
+    <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
+      <button className="btn-gold" style={{padding:"12px 24px"}} onClick={()=>setPage("dashboard")}>Go to My Library</button>
+      <button className="btn-outline" style={{padding:"12px 24px"}} onClick={()=>setPage("store")}>Continue Shopping</button>
+    </div>
+  </div>
+);
+
+const CheckoutPage = ({ cart, setCart, setPage }) => {
+  const [method, setMethod] = useState("stripe");
+  const [coupon, setCoupon] = useState("");
+  const [couponApplied, setCouponApplied] = useState(false);
+  const [step, setStep] = useState(1);
+  const total = cart.reduce((s,b)=>s+b.price,0);
+  const discount = couponApplied?total*0.2:0;
+  const final = total-discount;
+  if(step===2) return <ThankYouPage setPage={setPage} books={cart}/>;
+  return (
+    <div style={{maxWidth:1100,margin:"0 auto",padding:"40px 24px"}}>
+      <h1 className="playfair" style={{fontSize:36,fontWeight:700,marginBottom:8}}>Secure Checkout</h1>
+      <p style={{color:"var(--text2)",marginBottom:40}}>Complete your purchase and get instant access</p>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 420px",gap:32}} className="checkout-grid">
+        <div>
+          <div className="card" style={{padding:28,marginBottom:20}}>
+            <h3 style={{fontWeight:700,marginBottom:20,display:"flex",gap:8,alignItems:"center"}}><span style={{width:28,height:28,background:"var(--gold)",borderRadius:"50%",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"#0a0807",fontWeight:700}}>1</span> Contact Info</h3>
+            <div className="grid-2"><div><label>First Name</label><input placeholder="John"/></div><div><label>Last Name</label><input placeholder="Doe"/></div></div>
+            <div style={{marginTop:12}}><label>Email Address</label><input type="email" placeholder="john@example.com"/></div>
+          </div>
+          <div className="card" style={{padding:28}}>
+            <h3 style={{fontWeight:700,marginBottom:20,display:"flex",gap:8,alignItems:"center"}}><span style={{width:28,height:28,background:"var(--gold)",borderRadius:"50%",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"#0a0807",fontWeight:700}}>2</span> Payment Method</h3>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20}} className="payment-grid">
+              {[["stripe","💳 Stripe"],["paypal","🅿️ PayPal"],["upi","📱 UPI"],["crypto","₿ Crypto"]].map(([v,l])=><button key={v} onClick={()=>setMethod(v)} style={{padding:"12px 8px",borderRadius:10,border:`2px solid ${method===v?"var(--gold)":"var(--border)"}`,background:method===v?"rgba(201,168,76,0.12)":"var(--surface2)",color:method===v?"var(--gold)":"var(--text2)",cursor:"pointer",fontSize:12,fontFamily:"DM Sans",fontWeight:method===v?600:400}}>{l}</button>)}
+            </div>
+            {method==="stripe"&&<div><div style={{marginBottom:12}}><label>Card Number</label><input placeholder="1234 5678 9012 3456"/></div><div className="grid-2"><div><label>Expiry</label><input placeholder="MM/YY"/></div><div><label>CVV</label><input placeholder="123"/></div></div></div>}
+            {method==="paypal"&&<div style={{textAlign:"center",padding:"24px",background:"var(--surface2)",borderRadius:10,color:"var(--text2)",fontSize:14}}>You'll be redirected to PayPal to complete your payment securely.</div>}
+            {method==="upi"&&<div><label>UPI ID</label><input placeholder="yourname@upi"/></div>}
+            {method==="crypto"&&<div style={{padding:16,background:"var(--surface2)",borderRadius:10,fontSize:13,color:"var(--text2)"}}><div style={{marginBottom:8,fontWeight:600}}>Send to BTC Address:</div><div className="mono" style={{wordBreak:"break-all",color:"var(--gold)"}}>bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</div></div>}
+          </div>
+        </div>
+        <div>
+          <div className="card order-summary-card" style={{padding:28,position:"sticky",top:80}}>
+            <h3 style={{fontWeight:700,marginBottom:20}}>Order Summary</h3>
+            {cart.length===0?<div style={{textAlign:"center",padding:32,color:"var(--text3)"}}><div style={{fontSize:40,marginBottom:12}}>🛒</div><p>Your cart is empty</p><button className="btn-gold" style={{padding:"10px 20px",fontSize:13,marginTop:12}} onClick={()=>setPage("store")}>Browse Books</button></div>:(
+              <>
+                {cart.map(b=><div key={b.id} style={{display:"flex",gap:12,alignItems:"center",marginBottom:14}}><BookCover book={b} size="sm"/><div style={{flex:1}}><div style={{fontSize:13,fontWeight:600,lineHeight:1.3,marginBottom:2}}>{b.title}</div><div style={{fontSize:12,color:"var(--text3)"}}>by {b.author}</div></div><div style={{fontSize:15,fontWeight:700,color:"var(--gold)",fontFamily:"DM Mono"}}>${b.price}</div><button onClick={()=>setCart(cart.filter(c=>c.id!==b.id))} style={{background:"none",border:"none",cursor:"pointer",color:"var(--text3)",fontSize:16,padding:"0 4px"}}>×</button></div>)}
+                <div style={{borderTop:"1px solid var(--border)",paddingTop:16,marginTop:16}}>
+                  <div style={{display:"flex",gap:8,marginBottom:14}}><input placeholder="Coupon code (try SAVE20)" value={coupon} onChange={e=>setCoupon(e.target.value)} style={{flex:1}}/><button className="btn-outline" style={{padding:"10px 14px",fontSize:13,whiteSpace:"nowrap"}} onClick={()=>setCouponApplied(coupon.toUpperCase()==="SAVE20")}>Apply</button></div>
+                  {couponApplied&&<div style={{fontSize:12,color:"var(--green)",marginBottom:8}}>✓ Coupon applied! 20% off</div>}
+                  {[["Subtotal",`$${total.toFixed(2)}`],couponApplied?["Discount (20%)",`-$${discount.toFixed(2)}`]:null,["Tax","$0.00"],["Total",`$${final.toFixed(2)}`]].filter(Boolean).map(([k,v],i,arr)=>(
+                    <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderTop:i===arr.length-1?"1px solid var(--border)":"none",fontWeight:i===arr.length-1?700:400,fontSize:i===arr.length-1?16:14,marginTop:i===arr.length-1?8:0}}>
+                      <span style={{color:i===arr.length-1?"var(--text)":"var(--text2)"}}>{k}</span>
+                      <span style={{color:k==="Discount (20%)"?"var(--green)":i===arr.length-1?"var(--gold)":"var(--text)"}}>{v}</span>
+                    </div>
+                  ))}
+                </div>
+                <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15,marginTop:20}} onClick={()=>setStep(2)}>🔒 Complete Purchase — ${final.toFixed(2)}</button>
+                <div style={{textAlign:"center",marginTop:12,fontSize:12,color:"var(--text3)"}}>🔒 SSL Encrypted &nbsp;•&nbsp; Instant Delivery &nbsp;•&nbsp; 30-Day Refund</div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const AuthPage = ({ setPage, setUser }) => {
+  const [mode, setMode] = useState("login");
+  return (
+    <div style={{maxWidth:440,margin:"60px auto",padding:"0 24px"}}>
+      <div style={{textAlign:"center",marginBottom:32}}><div style={{fontSize:40,marginBottom:12}}>📚</div><h1 className="playfair" style={{fontSize:32,fontWeight:700,marginBottom:8}}>{mode==="login"?"Welcome Back":"Create Account"}</h1><p style={{color:"var(--text2)",fontSize:14}}>{mode==="login"?"Sign in to access your library":"Join 12,000+ readers today"}</p></div>
+      <div className="card" style={{padding:32}}>
+        {mode==="register"&&<div style={{marginBottom:16}}><label>Full Name</label><input placeholder="John Doe"/></div>}
+        <div style={{marginBottom:16}}><label>Email</label><input type="email" placeholder="john@example.com"/></div>
+        <div style={{marginBottom:20}}><label>Password</label><input type="password" placeholder="••••••••"/></div>
+        <button className="btn-gold" style={{width:"100%",padding:"13px",fontSize:15,marginBottom:12}} onClick={()=>{setUser({name:"John Doe",email:"john@example.com"});setPage("dashboard");}}>{mode==="login"?"Sign In →":"Create Account →"}</button>
+        <div style={{display:"flex",gap:8,justifyContent:"center",marginBottom:16}}>
+          {[["G","#EA4335"],["f","#1877F2"]].map(([l,c])=><button key={l} style={{flex:1,padding:"10px",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:8,cursor:"pointer",fontSize:14,color:c,fontWeight:700,fontFamily:"DM Sans"}}>Continue with {l==="G"?"Google":"Facebook"}</button>)}
+        </div>
+        <div style={{textAlign:"center",fontSize:13}}>{mode==="login"?<>Don't have an account? <span style={{color:"var(--gold)",cursor:"pointer"}} onClick={()=>setMode("register")}>Sign up free</span></>:<>Already have an account? <span style={{color:"var(--gold)",cursor:"pointer"}} onClick={()=>setMode("login")}>Sign in</span></>}</div>
+      </div>
+    </div>
+  );
+};
+
+const DashboardPage = ({ user, setPage }) => {
+  const [tab, setTab] = useState("library");
+  const myBooks = BOOKS.slice(0,3);
+  return (
+    <div style={{maxWidth:1100,margin:"0 auto",padding:"40px 24px"}}>
+      <div style={{display:"flex",gap:20,marginBottom:32,alignItems:"center"}}>
+        <div style={{width:60,height:60,background:"linear-gradient(135deg,var(--gold),#e8c96a)",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,fontWeight:700,color:"#0a0807"}}>JD</div>
+        <div><h1 className="playfair" style={{fontSize:28,fontWeight:700}}>Welcome back, {user?.name||"Reader"}</h1><p style={{color:"var(--text2)",fontSize:14}}>john@example.com &nbsp;•&nbsp; Member since 2024</p></div>
+      </div>
+      <div style={{display:"flex",gap:8,marginBottom:28}}>
+        {["library","history","profile"].map(t=><button key={t} onClick={()=>setTab(t)} style={{padding:"9px 18px",background:tab===t?"rgba(201,168,76,0.15)":"var(--surface2)",border:`1px solid ${tab===t?"var(--gold)":"var(--border)"}`,color:tab===t?"var(--gold)":"var(--text2)",cursor:"pointer",borderRadius:8,fontSize:13,fontFamily:"DM Sans",textTransform:"capitalize",fontWeight:tab===t?600:400}}>{t}</button>)}
+      </div>
+      {tab==="library"&&<div><h2 style={{fontWeight:700,marginBottom:20}}>📚 My Library ({myBooks.length} books)</h2><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:20}}>{myBooks.map(b=><div key={b.id} className="card" style={{padding:20,display:"flex",gap:16}}><BookCover book={b} size="sm"/><div style={{flex:1}}><h3 style={{fontFamily:"Playfair Display",fontSize:15,fontWeight:600,marginBottom:4}}>{b.title}</h3><p style={{fontSize:12,color:"var(--text2)",marginBottom:12}}>by {b.author}</p><div style={{display:"flex",gap:8}}><button className="btn-gold" style={{padding:"7px 12px",fontSize:12}}>⬇ PDF</button><button className="btn-outline" style={{padding:"7px 12px",fontSize:12}}>⬇ EPUB</button></div></div></div>)}</div></div>}
+      {tab==="history"&&<div><h2 style={{fontWeight:700,marginBottom:20}}>🧾 Purchase History</h2>{myBooks.map((b,i)=><div key={b.id} className="card" style={{padding:20,marginBottom:12,display:"flex",gap:16,alignItems:"center"}}><BookCover book={b} size="sm"/><div style={{flex:1}}><div style={{fontWeight:600,marginBottom:2}}>{b.title}</div><div style={{fontSize:13,color:"var(--text2)"}}>Order #DBS{1000+i}</div></div><div style={{textAlign:"right"}}><div style={{fontWeight:700,color:"var(--gold)",fontFamily:"DM Mono",marginBottom:4}}>${b.price}</div><div className="tag" style={{background:"rgba(76,175,130,0.15)",color:"var(--green)"}}>✓ Completed</div></div></div>)}</div>}
+      {tab==="profile"&&<div style={{maxWidth:500}}><h2 style={{fontWeight:700,marginBottom:20}}>⚙️ Profile Settings</h2><div className="card" style={{padding:28}}><div style={{marginBottom:16}}><label>Full Name</label><input defaultValue="John Doe"/></div><div style={{marginBottom:16}}><label>Email</label><input defaultValue="john@example.com"/></div><div style={{marginBottom:16}}><label>New Password</label><input type="password" placeholder="Leave blank to keep current"/></div><button className="btn-gold" style={{padding:"12px 24px"}}>Save Changes</button></div></div>}
+    </div>
+  );
+};
+
+
+const BlogPage = () => {
+  const posts = [{title:"10 eBooks That Changed How I Think About Money",cat:"Finance",date:"Mar 5, 2025",read:"6 min",img:"💰"},{title:"The Science Behind Why We Remember What We Read",cat:"Self-Help",date:"Feb 28, 2025",read:"4 min",img:"🧠"},{title:"Design Thinking: From Theory to $10M Product",cat:"Design",date:"Feb 20, 2025",read:"8 min",img:"🎨"},{title:"How Serial Entrepreneurs Read 50+ Books Per Year",cat:"Business",date:"Feb 12, 2025",read:"5 min",img:"📈"}];
+  return (
+    <div style={{maxWidth:900,margin:"0 auto",padding:"40px 24px"}}>
+      <h1 className="playfair" style={{fontSize:44,fontWeight:700,marginBottom:8}}>The Reading Room</h1>
+      <p style={{color:"var(--text2)",marginBottom:40}}>Insights, summaries, and ideas from our curated library</p>
+      <div style={{display:"grid",gap:24}}>
+        {posts.map((p,i)=><div key={i} className="card" style={{padding:28,display:"flex",gap:24,cursor:"pointer",transition:"all .2s"}} onMouseEnter={e=>{e.currentTarget.style.transform="translateX(4px)";e.currentTarget.style.borderColor="rgba(201,168,76,0.4)"}} onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.borderColor=""}}><div style={{width:80,height:80,background:"var(--bg3)",borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:36,flexShrink:0}}>{p.img}</div><div><div style={{display:"flex",gap:8,marginBottom:8}}><span className="tag" style={{background:"rgba(201,168,76,0.15)",color:"var(--gold)"}}>{p.cat}</span><span style={{fontSize:12,color:"var(--text3)"}}>{p.date} &nbsp;•&nbsp; {p.read} read</span></div><h2 className="playfair" style={{fontSize:20,fontWeight:600,lineHeight:1.3,marginBottom:8}}>{p.title}</h2><p style={{fontSize:14,color:"var(--text2)",lineHeight:1.6}}>Discover the strategies that top performers use to extract maximum value from every book they read...</p></div></div>)}
+      </div>
+    </div>
+  );
+};
+
+const FAQPage = () => {
+  const [open, setOpen] = useState(null);
+  const faqs = [
+    { q: "What formats do your eBooks come in?", a: "All eBooks are available in PDF and EPUB format. After purchase, you can download both versions instantly from your library. PDF is great for desktop reading, while EPUB works perfectly on e-readers and mobile devices." },
+    { q: "Can I read on multiple devices?", a: "Yes! Once purchased, your eBooks are available on all your devices — desktop, tablet, smartphone, Kindle, and any e-reader that supports EPUB. Just sign in to your account to access your library anywhere." },
+    { q: "Do the eBooks expire?", a: "Never. All purchases are lifetime access. Once you buy a book, it's yours forever. You can download it as many times as you need, on as many devices as you own." },
+    { q: "How do I download my eBook after purchase?", a: "After completing your purchase, you'll be taken directly to the download page. You'll also receive an email at your registered address with download links. All downloads are also saved in your account dashboard under 'My Library'." },
+    { q: "What is your refund policy?", a: "We offer a full 30-day money-back guarantee, no questions asked. If you're not satisfied with your purchase for any reason, contact us at dcsystem77@gmail.com within 30 days and we'll process your refund immediately." },
+    { q: "Are the eBooks DRM protected?", a: "Yes, our eBooks include DRM (Digital Rights Management) protection to respect author copyrights. This means files are licensed to your account and cannot be shared or resold, but you can use them on all your personal devices." },
+    { q: "Can I get a discount or use a coupon?", a: "Absolutely! We regularly offer coupon codes via our newsletter. Subscribe with your email on the home page to receive weekly discounts and free chapter previews. You can apply coupon codes at checkout." },
+    { q: "Do you offer bundles or bulk pricing?", a: "Yes! We offer special bundle deals for purchasing multiple eBooks together. We also have business/team pricing for organizations. Contact us at dcsystem77@gmail.com for custom pricing." },
+    { q: "What payment methods do you accept?", a: "We accept all major credit and debit cards (Visa, Mastercard, Amex), PayPal, and various local payment options depending on your country. All transactions are SSL-secured and encrypted." },
+    { q: "How do I contact customer support?", a: "Our support team is available 7 days a week. Email us at dcsystem77@gmail.com and we typically respond within 2–4 hours. For urgent issues, mention 'URGENT' in your subject line." },
+  ];
+  return (
+    <div style={{maxWidth:800,margin:"0 auto",padding:"60px 24px"}}>
+      <div style={{textAlign:"center",marginBottom:56}}>
+        <div className="tag" style={{background:"rgba(201,168,76,0.15)",color:"var(--gold)",marginBottom:14}}>Support</div>
+        <h1 className="playfair" style={{fontSize:"clamp(32px,4vw,52px)",fontWeight:700,marginBottom:12}}>Frequently Asked <em style={{color:"var(--gold)"}}>Questions</em></h1>
+        <p style={{color:"var(--text2)",fontSize:16,lineHeight:1.7}}>Everything you need to know about DigitalBookStore. Can't find your answer? <span style={{color:"var(--gold)",cursor:"pointer",fontWeight:600}}>Email us</span> anytime.</p>
+      </div>
+      <div style={{display:"grid",gap:12}}>
+        {faqs.map((f,i)=>(
+          <div key={i} className="card" style={{overflow:"hidden",transition:"all .2s",borderColor:open===i?"rgba(201,168,76,0.4)":"var(--border)"}}>
+            <div onClick={()=>setOpen(open===i?null:i)} style={{padding:"20px 24px",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",gap:16}}>
+              <span style={{fontWeight:600,fontSize:15,lineHeight:1.4}}>{f.q}</span>
+              <div style={{width:28,height:28,background:open===i?"rgba(201,168,76,0.15)":"var(--bg3)",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:open===i?"var(--gold)":"var(--text2)",fontSize:16,transition:"all .2s",transform:open===i?"rotate(45deg)":"none"}}>+</div>
+            </div>
+            {open===i&&<div style={{padding:"16px 24px 20px",color:"var(--text2)",fontSize:14,lineHeight:1.8,borderTop:"1px solid var(--border)"}}>{f.a}</div>}
+          </div>
+        ))}
+      </div>
+      <div className="card" style={{marginTop:40,padding:32,textAlign:"center",background:"linear-gradient(135deg,rgba(201,168,76,0.08),rgba(201,168,76,0.03))"}}>
+        <div style={{fontSize:40,marginBottom:12}}>💬</div>
+        <h3 className="playfair" style={{fontSize:22,fontWeight:700,marginBottom:8}}>Still have questions?</h3>
+        <p style={{color:"var(--text2)",marginBottom:20,fontSize:14}}>Our support team replies within 2–4 hours, 7 days a week.</p>
+        <a href="mailto:dcsystem77@gmail.com" style={{textDecoration:"none"}}><button className="btn-gold" style={{padding:"12px 28px",fontSize:14}}>📧 Email dcsystem77@gmail.com</button></a>
+      </div>
+    </div>
+  );
+};
+
+const ContactPage = () => {
+  const [form, setForm] = useState({name:"",email:"",subject:"",message:""});
+  const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const handle = k => e => setForm({...form,[k]:e.target.value});
+  const submit = () => { if(!form.name||!form.email||!form.message) return; setLoading(true); setTimeout(()=>{setLoading(false);setSent(true);},1200); };
+  return (
+    <div style={{maxWidth:1100,margin:"0 auto",padding:"60px 24px"}}>
+      <div style={{textAlign:"center",marginBottom:56}}>
+        <div className="tag" style={{background:"rgba(201,168,76,0.15)",color:"var(--gold)",marginBottom:14}}>Get in Touch</div>
+        <h1 className="playfair" style={{fontSize:"clamp(32px,4vw,52px)",fontWeight:700,marginBottom:12}}>We'd Love to <em style={{color:"var(--gold)"}}>Hear From You</em></h1>
+        <p style={{color:"var(--text2)",fontSize:16}}>Questions, feedback, or partnership inquiries — we're here for it all.</p>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1.6fr",gap:40,alignItems:"start"}} className="contact-grid">
+        <div style={{display:"grid",gap:16}}>
+          {[
+            {icon:"📧",title:"Email Us",val:"dcsystem77@gmail.com",sub:"We reply within 2–4 hours"},
+            {icon:"🕐",title:"Support Hours",val:"7 Days a Week",sub:"9 AM – 11 PM (PKT)"},
+            {icon:"💬",title:"Response Time",val:"Under 4 Hours",sub:"Average response time"},
+            {icon:"🌍",title:"We Serve",val:"Worldwide",sub:"All countries supported"},
+          ].map(({icon,title,val,sub})=>(
+            <div key={title} className="card" style={{padding:20,display:"flex",gap:16,alignItems:"flex-start"}}>
+              <div style={{width:44,height:44,background:"rgba(201,168,76,0.12)",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{icon}</div>
+              <div><div style={{fontSize:12,color:"var(--text3)",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:2}}>{title}</div><div style={{fontWeight:700,fontSize:15,marginBottom:2}}>{val}</div><div style={{fontSize:12,color:"var(--text3)"}}>{sub}</div></div>
+            </div>
+          ))}
+        </div>
+        <div className="card" style={{padding:32}}>
+          {sent ? (
+            <div style={{textAlign:"center",padding:"40px 0"}}>
+              <div style={{width:72,height:72,background:"rgba(76,175,130,0.15)",border:"2px solid #4CAF82",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:36,margin:"0 auto 20px"}}>✓</div>
+              <h2 className="playfair" style={{fontSize:26,fontWeight:700,marginBottom:8}}>Message Sent!</h2>
+              <p style={{color:"var(--text2)",marginBottom:6}}>Thanks, <strong>{form.name}</strong>! We received your message.</p>
+              <p style={{color:"var(--text3)",fontSize:14}}>We'll reply to <strong style={{color:"var(--gold)"}}>{form.email}</strong> within 2–4 hours.</p>
+            </div>
+          ) : (
+            <>
+              <h2 className="playfair" style={{fontSize:24,fontWeight:700,marginBottom:24}}>Send a Message</h2>
+              <div className="grid-2" style={{marginBottom:16}}>
+                <div><label>Your Name *</label><input placeholder="Muhammad Ali" value={form.name} onChange={handle("name")}/></div>
+                <div><label>Email Address *</label><input placeholder="your@email.com" value={form.email} onChange={handle("email")}/></div>
+              </div>
+              <div style={{marginBottom:16}}>
+                <label>Subject</label>
+                <select value={form.subject} onChange={handle("subject")}>
+                  <option value="">Select a topic...</option>
+                  <option>Order & Download Issue</option>
+                  <option>Refund Request</option>
+                  <option>Technical Support</option>
+                  <option>Partnership / Bulk Order</option>
+                  <option>Content Suggestion</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <div style={{marginBottom:24}}>
+                <label>Message *</label>
+                <textarea placeholder="Describe your question or issue in detail..." rows={5} value={form.message} onChange={handle("message")} style={{resize:"vertical"}}/>
+              </div>
+              <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15}} onClick={submit} disabled={loading}>
+                {loading?"⏳ Sending...":"📤 Send Message"}
+              </button>
+              <p style={{fontSize:12,color:"var(--text3)",textAlign:"center",marginTop:12}}>Or email directly: <a href="mailto:dcsystem77@gmail.com" style={{color:"var(--gold)",textDecoration:"none",fontWeight:600}}>dcsystem77@gmail.com</a></p>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const RefundPage = () => (
+  <div style={{maxWidth:800,margin:"0 auto",padding:"60px 24px"}}>
+    <div style={{textAlign:"center",marginBottom:48}}>
+      <div className="tag" style={{background:"rgba(76,175,130,0.15)",color:"var(--green)",marginBottom:14}}>100% Protected</div>
+      <h1 className="playfair" style={{fontSize:"clamp(32px,4vw,52px)",fontWeight:700,marginBottom:12}}>Refund <em style={{color:"var(--gold)"}}>Policy</em></h1>
+      <p style={{color:"var(--text2)",fontSize:15}}>Last updated: January 1, 2025</p>
+    </div>
+    <div style={{background:"linear-gradient(135deg,rgba(76,175,130,0.1),rgba(76,175,130,0.04))",border:"1px solid rgba(76,175,130,0.3)",borderRadius:16,padding:28,marginBottom:36,display:"flex",gap:20,alignItems:"flex-start"}}>
+      <div style={{fontSize:40,flexShrink:0}}>🛡️</div>
+      <div><h2 style={{fontWeight:700,color:"var(--green)",marginBottom:6}}>30-Day Money-Back Guarantee</h2><p style={{color:"var(--text2)",lineHeight:1.7,fontSize:15}}>We stand behind every eBook in our store. If you're not completely satisfied within 30 days of purchase, we'll issue a full refund — no questions asked, no hassle.</p></div>
+    </div>
+    {[
+      {title:"1. Eligibility for Refund",body:"You are eligible for a full refund if:\n• Your refund request is submitted within 30 days of purchase\n• You have not downloaded the eBook more than 3 times\n• The issue is reported to us at dcsystem77@gmail.com\n\nRefunds are processed within 3–5 business days to your original payment method."},
+      {title:"2. How to Request a Refund",body:"To request a refund, simply send an email to dcsystem77@gmail.com with:\n• Your order ID or email used at checkout\n• The title of the eBook\n• A brief reason for your refund (optional but appreciated)\n\nWe aim to process all refund requests within 24 hours of receiving them."},
+      {title:"3. Non-Refundable Situations",body:"Refunds may not be issued in the following cases:\n• More than 30 days have passed since the purchase date\n• The eBook has been downloaded more than 3 times (indicates full consumption)\n• Coupon or promotional offers labeled as 'Non-Refundable'\n• Fraudulent or repeat refund abuse (more than 3 refunds per account)"},
+      {title:"4. Technical Issues",body:"If you experience a technical problem with downloading or accessing your eBook, please contact us first at dcsystem77@gmail.com. In most cases we can resolve the issue immediately. Technical issues are always fully covered under our guarantee."},
+      {title:"5. Bundle Purchases",body:"For bundle purchases, refunds are applied to the entire bundle if requested within 30 days. Partial refunds for individual books within a bundle are evaluated case-by-case."},
+      {title:"6. Contact Us",body:"For any refund-related questions, reach out to us at:\n📧 dcsystem77@gmail.com\n\nOur support team is available 7 days a week and responds within 2–4 hours."},
+    ].map(({title,body})=>(
+      <div key={title} className="card" style={{padding:28,marginBottom:16}}>
+        <h2 style={{fontWeight:700,fontSize:17,marginBottom:12,color:"var(--text)"}}>{title}</h2>
+        <p style={{color:"var(--text2)",fontSize:14,lineHeight:1.9,whiteSpace:"pre-line"}}>{body}</p>
+      </div>
+    ))}
+    <div style={{textAlign:"center",marginTop:36}}>
+      <a href="mailto:dcsystem77@gmail.com" style={{textDecoration:"none"}}><button className="btn-gold" style={{padding:"13px 32px",fontSize:14}}>📧 Request a Refund</button></a>
+    </div>
+  </div>
+);
+
+const PrivacyPage = () => (
+  <div style={{maxWidth:800,margin:"0 auto",padding:"60px 24px"}}>
+    <div style={{textAlign:"center",marginBottom:48}}>
+      <div className="tag" style={{background:"rgba(124,159,176,0.15)",color:"var(--blue)",marginBottom:14}}>Legal</div>
+      <h1 className="playfair" style={{fontSize:"clamp(32px,4vw,52px)",fontWeight:700,marginBottom:12}}>Privacy <em style={{color:"var(--gold)"}}>Policy</em></h1>
+      <p style={{color:"var(--text2)",fontSize:15}}>Last updated: January 1, 2025</p>
+    </div>
+    <div style={{background:"rgba(201,168,76,0.07)",border:"1px solid rgba(201,168,76,0.2)",borderRadius:16,padding:24,marginBottom:36}}>
+      <p style={{color:"var(--text2)",fontSize:14,lineHeight:1.8}}>At <strong style={{color:"var(--gold)"}}>DigitalBookStore</strong>, your privacy matters deeply to us. This policy explains what information we collect, how we use it, and your rights as a user. We are committed to protecting your personal data and never selling it to third parties.</p>
+    </div>
+    {[
+      {icon:"📋",title:"1. Information We Collect",body:"We collect information you provide directly to us:\n• Name and email address (when you register or subscribe)\n• Payment information (processed securely via our payment provider — we never store card details)\n• Purchase history and downloaded titles\n• Messages or inquiries sent to dcsystem77@gmail.com\n\nWe also collect basic usage data such as pages visited and device type to improve our service."},
+      {icon:"🎯",title:"2. How We Use Your Information",body:"Your information is used to:\n• Process your purchases and deliver your eBooks\n• Send purchase confirmations and download links\n• Provide customer support\n• Send newsletters and promotions (only if you opted in)\n• Improve our website and product selection\n• Comply with legal obligations\n\nWe never sell, rent, or trade your personal information to third parties."},
+      {icon:"🔒",title:"3. Data Security",body:"We take security seriously. All data is transmitted over SSL-encrypted connections. Payment processing is handled by PCI-DSS compliant providers. We regularly review our security practices to protect your data from unauthorized access, disclosure, or destruction."},
+      {icon:"🍪",title:"4. Cookies",body:"We use cookies to:\n• Keep you logged into your account\n• Remember your theme and preferences\n• Analyze site traffic anonymously via analytics tools\n\nYou can disable cookies in your browser settings. Note that some features (like staying logged in) may not work without them."},
+      {icon:"✉️",title:"5. Email Communications",body:"If you subscribe to our newsletter, you'll receive weekly book summaries, discount codes, and free chapter previews. You can unsubscribe at any time using the link at the bottom of any email we send, or by contacting us at dcsystem77@gmail.com."},
+      {icon:"👤",title:"6. Your Rights",body:"You have the right to:\n• Access the personal data we hold about you\n• Request correction of inaccurate data\n• Request deletion of your account and data\n• Withdraw consent for email marketing at any time\n\nTo exercise any of these rights, contact us at dcsystem77@gmail.com."},
+      {icon:"📞",title:"7. Contact & Questions",body:"For any privacy-related questions or concerns, please contact:\n📧 dcsystem77@gmail.com\n\nWe will respond to all privacy inquiries within 48 hours."},
+    ].map(({icon,title,body})=>(
+      <div key={title} className="card" style={{padding:28,marginBottom:16}}>
+        <h2 style={{fontWeight:700,fontSize:17,marginBottom:12,display:"flex",gap:10,alignItems:"center"}}><span style={{fontSize:20}}>{icon}</span>{title}</h2>
+        <p style={{color:"var(--text2)",fontSize:14,lineHeight:1.9,whiteSpace:"pre-line"}}>{body}</p>
+      </div>
+    ))}
+  </div>
+);
+
+function App() {
+  const [page, setPage] = useState("home");
+  const [dark, setDark] = useState(true);
+  const [cart, setCart] = useState([]);
+  const [selectedBook, setSelectedBook] = useState(BOOKS[0]);
+  const [user, setUser] = useState(null);
+  useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[page]);
+  const renderPage = () => {
+    switch(page) {
+      case "home": return <HomePage setPage={setPage} setSelectedBook={setSelectedBook} cart={cart} setCart={setCart}/>;
+      case "store": return <StorePage setPage={setPage} setSelectedBook={setSelectedBook} cart={cart} setCart={setCart}/>;
+      case "book": return <BookPage book={selectedBook} setPage={setPage} cart={cart} setCart={setCart}/>;
+      case "checkout": return <CheckoutPage cart={cart} setCart={setCart} setPage={setPage}/>;
+      case "auth": return <AuthPage setPage={setPage} setUser={setUser}/>;
+      case "dashboard": return <DashboardPage user={user} setPage={setPage}/>;
+      // admin page removed
+      case "blog": return <BlogPage/>;
+      case "faq": return <FAQPage/>;
+      case "contact": return <ContactPage/>;
+      case "refund": return <RefundPage/>;
+      case "privacy": return <PrivacyPage/>;
+      default: return <HomePage setPage={setPage} setSelectedBook={setSelectedBook} cart={cart} setCart={setCart}/>;
+    }
+  };
+  return (
+    <>
+      <GlobalStyles dark={dark}/>
+      <Nav page={page} setPage={setPage} dark={dark} setDark={setDark} cart={cart} user={user} setUser={setUser}/>
+      <main className="fade-in">{renderPage()}</main>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
