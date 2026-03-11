@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>⚙️ Admin — DigitalBookStore</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23C9A84C'/><text y='72' x='50' text-anchor='middle' font-size='62'>⚙️</text></svg>"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{--bg:#09090b;--bg2:#111114;--bg3:#18181c;--surface:#1c1c20;--surface2:#242428;--border:rgba(255,255,255,0.07);--text:#f1ede8;--text2:#8b8882;--text3:#52504d;--gold:#C9A84C;--gold2:#e8c96a;--red:#e05c4b;--green:#4CAF82;--blue:#7C9FB0;--purple:#A78BFA;}
+    html,body,#root{height:100%;margin:0;}
+    body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;line-height:1.6;overflow:hidden;}
+    ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--gold);border-radius:2px}
+    .playfair{font-family:'Playfair Display',serif}.mono{font-family:'DM Mono',monospace}.gold{color:var(--gold)}
+    .btn{border:none;cursor:pointer;border-radius:8px;font-family:'DM Sans',sans-serif;font-weight:500;transition:all .18s;}
+    .btn-gold{background:linear-gradient(135deg,#C9A84C,#e8c96a);color:#0a0807;font-weight:600;}
+    .btn-gold:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 6px 20px rgba(201,168,76,.3);}.btn-gold:disabled,.btn-gold[disabled]{opacity:.5;cursor:not-allowed;transform:none!important;filter:none!important;box-shadow:none!important;}
+    .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text2);}
+    .btn-ghost:hover{border-color:var(--gold);color:var(--gold);}
+    .btn-danger{background:rgba(224,92,75,.12);border:1px solid rgba(224,92,75,.3);color:var(--red);}
+    .btn-danger:hover{background:rgba(224,92,75,.2);}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;}
+    .tag{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;}
+    input,textarea,select{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;border-radius:8px;padding:9px 13px;font-size:13px;width:100%;outline:none;transition:border .2s;}
+    input:focus,textarea:focus,select:focus{border-color:var(--gold);}
+    label{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px;}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+    @keyframes pulse2{0%,100%{opacity:1}50%{opacity:.5}}
+    .fade-in{animation:fadeIn .3s ease both;}
+    .login-wrap{height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 30% 40%,rgba(201,168,76,.07),transparent 60%),var(--bg);}
+    .admin-layout{display:flex;height:100vh;overflow:hidden;}
+    .sidebar{width:240px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;}
+    .main-area{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+    .topbar{height:58px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:rgba(9,9,11,.85);backdrop-filter:blur(12px);flex-shrink:0;}
+    .content{flex:1;overflow-y:auto;padding:28px;}
+    table{width:100%;border-collapse:collapse;}
+    th{text-align:left;padding:10px 14px;font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.06em;background:var(--surface2);}
+    td{padding:11px 14px;font-size:13px;border-bottom:1px solid var(--border);}
+    tr:last-child td{border-bottom:none;}
+    tr:hover td{background:rgba(255,255,255,.02);}
+    .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:400;display:flex;align-items:center;justify-content:center;padding:20px;}
+    .modal{background:var(--bg2);border:1px solid var(--border);border-radius:20px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;}
+    .toast-msg{position:fixed;bottom:24px;right:24px;background:var(--green);color:#fff;border-radius:10px;padding:12px 20px;font-size:13px;font-weight:600;z-index:999;animation:fadeIn .3s ease;}
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+    .charts-row{display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:24px;}
+    .bar-wrap{display:flex;align-items:flex-end;gap:5px;height:100px;}
+    .msgs-grid{display:grid;grid-template-columns:280px 1fr;gap:14px;height:calc(100vh - 145px);min-height:400px;}.msgs-list{overflow:hidden;display:flex;flex-direction:column;}.msgs-detail{display:flex;flex-direction:column;overflow:hidden;}@media(max-width:1024px){.stats-grid{grid-template-columns:repeat(2,1fr);}.charts-row{grid-template-columns:1fr;}}@media(max-width:900px){.msgs-grid{grid-template-columns:1fr!important;height:auto!important;}.msgs-list{max-height:280px;}.msgs-detail{min-height:380px;}}
+    @media(max-width:768px){.sidebar{position:fixed;left:-240px;top:0;bottom:0;z-index:200;transition:left .25s;}.sidebar.open{left:0;}.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:199;}.sidebar-overlay.open{display:block;}.hamburger-btn{display:flex!important;}.content{padding:16px;}.stats-grid{grid-template-columns:1fr 1fr;}}
+    @media(min-width:769px){.hamburger-btn{display:none!important;}}
+  </style>
+</head>
+<body><div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const INIT_BOOKS = [
+  {id:1,title:"The Atomic Entrepreneur",author:"James Caldwell",price:24.99,category:"Business",sales:312,status:"Active",rating:4.9},
+  {id:2,title:"Quiet Design",author:"Sofia Reinholt",price:19.99,category:"Design",sales:198,status:"Active",rating:4.8},
+  {id:3,title:"Sovereign Mind",author:"Dr. Priya Nair",price:17.99,category:"Self-Help",sales:421,status:"Active",rating:4.7},
+  {id:4,title:"Money Meridian",author:"Carlos Vega",price:29.99,category:"Finance",sales:154,status:"Active",rating:4.9},
+  {id:5,title:"Code Alchemy",author:"Yuki Tanaka",price:34.99,category:"Technology",sales:89,status:"Active",rating:4.8},
+  {id:6,title:"The Content Oracle",author:"Maya Stone",price:22.99,category:"Marketing",sales:211,status:"Active",rating:4.6},
+  {id:7,title:"Prompt Mastery",author:"Lena Fischer",price:27.99,category:"AI Tools",sales:534,status:"Active",rating:4.9},
+  {id:8,title:"AI Side Hustle Blueprint",author:"Marcus Webb",price:21.99,category:"AI Tools",sales:267,status:"Active",rating:4.7},
+  {id:9,title:"The Magic Reading Tree",author:"Emma Brightwell",price:9.99,category:"Kids",sales:743,status:"Active",rating:4.9},
+  {id:10,title:"Little Scientists: Space!",author:"Dr. Amy Zhou",price:11.99,category:"Kids",sales:412,status:"Active",rating:4.8},
+  {id:11,title:"Desire & Devotion",author:"Isabella Vance",price:14.99,category:"18+",sales:891,status:"Active",rating:4.8},
+  {id:12,title:"Midnight Confessions",author:"Scarlett Monroe",price:12.99,category:"18+",sales:623,status:"Active",rating:4.7},
+  {id:13,title:"Body Revolution 90",author:"Coach Tyler Banks",price:23.99,category:"Health & Fitness",sales:334,status:"Active",rating:4.8},
+  {id:14,title:"The Mindful Athlete",author:"Dr. Serena Cole",price:18.99,category:"Health & Fitness",sales:178,status:"Inactive",rating:4.7},
+  {id:15,title:"Fat to Fit: The Real Way",author:"Dr. Nia Okafor",price:19.99,category:"Weight Loss",sales:556,status:"Active",rating:4.9},
+  {id:16,title:"The Gut Reset",author:"Dr. Hannah Brooks",price:16.99,category:"Weight Loss",sales:289,status:"Active",rating:4.8},
+];
+const INIT_CUSTOMERS = [
+  {id:1,name:"Sarah Mitchell",email:"sarah@email.com",books:4,spent:94.96,joined:"Jan 12, 2025",status:"Active"},
+  {id:2,name:"James Khan",email:"james.k@email.com",books:2,spent:47.98,joined:"Feb 3, 2025",status:"Active"},
+  {id:3,name:"Priya Nair",email:"priya.n@email.com",books:7,spent:163.93,joined:"Dec 28, 2024",status:"Active"},
+  {id:4,name:"Carlos Vega",email:"carlos.v@email.com",books:1,spent:29.99,joined:"Mar 1, 2025",status:"Active"},
+  {id:5,name:"Aisha Patel",email:"aisha.p@email.com",books:5,spent:109.95,joined:"Jan 30, 2025",status:"Inactive"},
+  {id:6,name:"David Chen",email:"david.c@email.com",books:3,spent:67.97,joined:"Feb 14, 2025",status:"Active"},
+  {id:7,name:"Leila Hassan",email:"leila.h@email.com",books:9,spent:207.91,joined:"Nov 5, 2024",status:"Active"},
+  {id:8,name:"Omar Farooq",email:"omar.f@email.com",books:2,spent:52.98,joined:"Mar 5, 2025",status:"Active"},
+  {id:9,name:"Emma Bright",email:"emma.b@email.com",books:6,spent:134.94,joined:"Jan 7, 2025",status:"Active"},
+  {id:10,name:"Ravi Sharma",email:"ravi.s@email.com",books:1,spent:19.99,joined:"Mar 8, 2025",status:"Inactive"},
+];
+const INIT_ORDERS = [
+  {id:"#ORD-1041",customer:"Sarah Mitchell",book:"Prompt Mastery",amount:27.99,date:"Mar 10, 2025",status:"Completed"},
+  {id:"#ORD-1040",customer:"Leila Hassan",book:"Fat to Fit: The Real Way",amount:19.99,date:"Mar 10, 2025",status:"Completed"},
+  {id:"#ORD-1039",customer:"Omar Farooq",book:"The Atomic Entrepreneur",amount:24.99,date:"Mar 9, 2025",status:"Completed"},
+  {id:"#ORD-1038",customer:"David Chen",book:"Desire & Devotion",amount:14.99,date:"Mar 9, 2025",status:"Processing"},
+  {id:"#ORD-1037",customer:"Priya Nair",book:"Money Meridian",amount:29.99,date:"Mar 8, 2025",status:"Completed"},
+  {id:"#ORD-1036",customer:"Emma Bright",book:"The Gut Reset",amount:16.99,date:"Mar 8, 2025",status:"Completed"},
+  {id:"#ORD-1035",customer:"James Khan",book:"Code Alchemy",amount:34.99,date:"Mar 7, 2025",status:"Refunded"},
+  {id:"#ORD-1034",customer:"Carlos Vega",book:"AI Side Hustle Blueprint",amount:21.99,date:"Mar 7, 2025",status:"Completed"},
+  {id:"#ORD-1033",customer:"Aisha Patel",book:"Quiet Design",amount:19.99,date:"Mar 6, 2025",status:"Completed"},
+  {id:"#ORD-1032",customer:"Ravi Sharma",book:"Sovereign Mind",amount:17.99,date:"Mar 5, 2025",status:"Refunded"},
+];
+const INIT_COUPONS = [
+  {id:1,code:"SAVE20",desc:"20% off all books",discount:"20%",type:"Percent",uses:847,status:"Active",expires:"Dec 31, 2025"},
+  {id:2,code:"WELCOME10",desc:"10% off first purchase",discount:"10%",type:"Percent",uses:1203,status:"Active",expires:"Dec 31, 2025"},
+  {id:3,code:"SUMMER30",desc:"30% off Design books",discount:"30%",type:"Percent",uses:312,status:"Expired",expires:"Sep 1, 2024"},
+  {id:4,code:"NEWBOOK",desc:"$5 off any eBook",discount:"$5",type:"Flat",uses:89,status:"Active",expires:"Jun 30, 2025"},
+  {id:5,code:"FLASH50",desc:"50% flash sale",discount:"50%",type:"Percent",uses:203,status:"Active",expires:"Mar 31, 2025"},
+];
+const ALL_CATS = ["Business","Design","Self-Help","Finance","Technology","Marketing","AI Tools","Kids","18+","Health & Fitness","Weight Loss"];
+const MONTHLY = [42,58,71,65,89,102,95,118,134,121,156,189];
+const MNAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+const fmt = n => "$"+parseFloat(n).toFixed(2);
+const av = name => name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+const avColor = name => { const h=name.split("").reduce((a,c)=>a+c.charCodeAt(0),0)%360; return `hsl(${h},50%,42%)`; };
+
+const SBadge = ({s}) => {
+  const m={Active:{bg:"rgba(76,175,130,.15)",c:"#4CAF82"},Inactive:{bg:"rgba(224,92,75,.1)",c:"#e05c4b"},Completed:{bg:"rgba(76,175,130,.15)",c:"#4CAF82"},Processing:{bg:"rgba(201,168,76,.15)",c:"#C9A84C"},Refunded:{bg:"rgba(124,159,176,.12)",c:"#7C9FB0"},Expired:{bg:"rgba(224,92,75,.1)",c:"#e05c4b"}};
+  const d=m[s]||{bg:"rgba(90,87,82,.2)",c:"#8b8882"};
+  return <span className="tag" style={{background:d.bg,color:d.c}}>{s}</span>;
+};
+const Av = ({name,size=32}) => <div style={{width:size,height:size,borderRadius:"50%",background:avColor(name),display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*.38,fontWeight:700,color:"#fff",flexShrink:0}}>{av(name)}</div>;
+const Toast = ({msg,onClose}) => { useEffect(()=>{const t=setTimeout(onClose,2800);return()=>clearTimeout(t);},[onClose]);return <div className="toast-msg">✓ {msg}</div>; };
+
+const BarChart = ({data,labels}) => {
+  const max=Math.max(...data);
+  return <div><div className="bar-wrap">{data.map((v,i)=><div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center"}}><div style={{width:"100%",height:`${(v/max)*90}%`,background:i===data.length-1?"linear-gradient(180deg,#C9A84C,#C9A84C88)":"rgba(201,168,76,.25)",borderRadius:"3px 3px 0 0",minHeight:4,transition:"height .6s"}}></div></div>)}</div><div style={{display:"flex",gap:5,marginTop:6}}>{labels.map((l,i)=><div key={i} style={{flex:1,textAlign:"center",fontSize:9,color:"var(--text3)"}}>{l}</div>)}</div></div>;
+};
+
+const DonutChart = ({slices}) => {
+  let total=slices.reduce((a,s)=>a+s.val,0),cum=0;const r=56,cx=65,cy=65,sw=18;
+  return <svg width="130" height="130" style={{display:"block",margin:"0 auto"}}>
+    <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--border)" strokeWidth={sw}/>
+    {slices.map((s,i)=>{const pct=s.val/total,offset=cum;cum+=pct;const c=2*Math.PI*r;return<circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={s.color} strokeWidth={sw} strokeDasharray={`${pct*c} ${c}`} strokeDashoffset={-offset*c} style={{transform:"rotate(-90deg)",transformOrigin:"50% 50%"}}/>;  })}
+    <text x={cx} y={cy-5} textAnchor="middle" fill="var(--text)" fontSize="16" fontWeight="700" fontFamily="DM Mono">$12.8K</text>
+    <text x={cx} y={cy+11} textAnchor="middle" fill="var(--text3)" fontSize="9" fontFamily="DM Sans">Revenue</text>
+  </svg>;
+};
+
+// LOGIN
+const Login = ({onLogin}) => {
+  const [u,setU]=useState(""),p2=useState(""),err=useState(""),loading=useState(false);
+  const [pw,setPw]=p2; const [e,setE]=err; const [ld,setLd]=loading;
+  const go=()=>{if(!u||!pw){setE("Fill all fields.");return;}setLd(true);setTimeout(()=>{if(u==="admin"&&pw==="admin123")onLogin();else{setE("Wrong username or password.");setLd(false);}},900);};
+  return <div className="login-wrap"><div style={{width:"100%",maxWidth:380,padding:"0 20px"}}>
+    <div style={{textAlign:"center",marginBottom:36}}>
+      <div style={{width:64,height:64,background:"linear-gradient(135deg,#C9A84C,#e8c96a)",borderRadius:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,margin:"0 auto 16px"}}>⚙️</div>
+      <h1 className="playfair" style={{fontSize:28,fontWeight:700,marginBottom:4}}>Admin Panel</h1>
+      <p style={{fontSize:13,color:"var(--text3)"}}>DigitalBookStore — Secure Access</p>
+    </div>
+    <div className="card" style={{padding:28}}>
+      {e&&<div style={{background:"rgba(224,92,75,.1)",border:"1px solid rgba(224,92,75,.3)",borderRadius:8,padding:"10px 14px",fontSize:13,color:"var(--red)",marginBottom:16}}>⚠ {e}</div>}
+      <div style={{marginBottom:16}}><label>Username</label><input placeholder="admin" value={u} onChange={ev=>setU(ev.target.value)} onKeyDown={ev=>ev.key==="Enter"&&go()}/></div>
+      <div style={{marginBottom:24}}><label>Password</label><input type="password" placeholder="••••••••" value={pw} onChange={ev=>setPw(ev.target.value)} onKeyDown={ev=>ev.key==="Enter"&&go()}/></div>
+      <button className="btn btn-gold" style={{width:"100%",padding:"12px",fontSize:14}} onClick={go} disabled={ld}>{ld?"Verifying...":"Sign In to Admin"}</button>
+      <p style={{fontSize:11,color:"var(--text3)",textAlign:"center",marginTop:14}}>Demo credentials: admin / admin123</p>
+    </div>
+  </div></div>;
+};
+
+// SIDEBAR
+const NAV=[{id:"dashboard",icon:"📊",label:"Dashboard"},{id:"books",icon:"📚",label:"Books"},{id:"orders",icon:"🛒",label:"Orders"},{id:"customers",icon:"👥",label:"Customers"},{id:"coupons",icon:"🎟️",label:"Coupons"},{id:"categories",icon:"📁",label:"Categories"},{id:"messages",icon:"✉️",label:"Messages",badge:3},{id:"settings",icon:"⚙️",label:"Settings"}];
+const Sidebar = ({tab,setTab,onClose}) => <div className="sidebar">
+  <div style={{padding:"20px 16px",borderBottom:"1px solid var(--border)"}}>
+    <div style={{display:"flex",alignItems:"center",gap:10}}>
+      <div style={{width:36,height:36,background:"linear-gradient(135deg,#C9A84C,#e8c96a)",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>⚙️</div>
+      <div><div className="playfair" style={{fontSize:15,fontWeight:700}}>Digital<span className="gold">Book</span></div><div style={{fontSize:10,color:"var(--text3)"}}>Admin Panel</div></div>
+    </div>
+  </div>
+  <div style={{padding:"12px 10px",flex:1}}>
+    <div style={{fontSize:10,color:"var(--text3)",fontWeight:600,textTransform:"uppercase",letterSpacing:".08em",padding:"6px 8px",marginBottom:4}}>Main Menu</div>
+    {NAV.map(item=><button key={item.id} onClick={()=>{setTab(item.id);onClose&&onClose();}} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:9,border:"none",cursor:"pointer",fontSize:13,fontWeight:tab===item.id?600:400,fontFamily:"DM Sans",background:tab===item.id?"rgba(201,168,76,.12)":"transparent",color:tab===item.id?"var(--gold)":"var(--text2)",marginBottom:2,transition:"all .15s",textAlign:"left"}}>
+      <span style={{fontSize:16,width:20,textAlign:"center"}}>{item.icon}</span>
+      <span style={{flex:1}}>{item.label}</span>
+      {item.badge&&<span style={{background:"var(--red)",color:"#fff",borderRadius:"50%",width:18,height:18,fontSize:10,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{item.badge}</span>}
+    </button>)}
+  </div>
+  <div style={{padding:"16px",borderTop:"1px solid var(--border)"}}>
+    <div style={{display:"flex",alignItems:"center",gap:10}}>
+      <Av name="Admin User" size={34}/>
+      <div><div style={{fontSize:13,fontWeight:600}}>Admin</div><div style={{fontSize:11,color:"var(--text3)"}}>dcsystem77@gmail.com</div></div>
+    </div>
+  </div>
+</div>;
+
+// DASHBOARD
+const Dashboard = () => {
+  const stats=[{l:"Total Revenue",v:"$12,847",s:"+18% this month",i:"💰",c:"#C9A84C"},{l:"Books Sold",v:"5,231",s:"+124 today",i:"📚",c:"#4CAF82"},{l:"Customers",v:"1,042",s:"+31 this week",i:"👥",c:"#7C9FB0"},{l:"Avg Order",v:"$23.40",s:"+$2.10 vs last month",i:"📈",c:"#A78BFA"}];
+  const cats=[{val:891,color:"#F472B6",label:"18+"},{val:743,color:"#34D399",label:"Kids"},{val:556,color:"#FBBF24",label:"Weight Loss"},{val:534,color:"#A78BFA",label:"AI Tools"},{val:421,color:"#B8A9C9",label:"Self-Help"}];
+  return <div className="fade-in">
+    <div style={{marginBottom:24}}><h1 className="playfair" style={{fontSize:26,fontWeight:700,marginBottom:4}}>Dashboard</h1><p style={{color:"var(--text3)",fontSize:13}}>Welcome back, Admin. Here's today's overview.</p></div>
+    <div className="stats-grid">{stats.map((s,i)=><div key={i} className="card" style={{padding:20}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+        <div style={{fontSize:26}}>{s.i}</div>
+        <div style={{width:32,height:32,background:`${s.c}18`,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:7,height:7,borderRadius:"50%",background:s.c}}/></div>
+      </div>
+      <div className="mono" style={{fontSize:22,fontWeight:700,color:s.c,marginBottom:3}}>{s.v}</div>
+      <div style={{fontSize:12,color:"var(--text3)"}}>{s.l}</div>
+      <div style={{fontSize:11,color:"var(--green)",marginTop:4}}>{s.s}</div>
+    </div>)}</div>
+    <div className="charts-row">
+      <div className="card" style={{padding:20}}>
+        <div style={{marginBottom:16}}><div style={{fontWeight:600,fontSize:14,marginBottom:2}}>Monthly Sales</div><div style={{fontSize:12,color:"var(--text3)"}}>Units sold per month — 2025</div></div>
+        <BarChart data={MONTHLY} labels={MNAMES}/>
+      </div>
+      <div className="card" style={{padding:20}}>
+        <div style={{marginBottom:16}}><div style={{fontWeight:600,fontSize:14,marginBottom:2}}>Top Categories</div><div style={{fontSize:12,color:"var(--text3)"}}>By sales volume</div></div>
+        <DonutChart slices={cats}/>
+        <div style={{marginTop:12,display:"grid",gap:6}}>{cats.map((d,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:8,fontSize:12}}>
+          <div style={{width:8,height:8,borderRadius:"50%",background:d.color,flexShrink:0}}/><span style={{flex:1,color:"var(--text2)"}}>{d.label}</span><span className="mono" style={{color:"var(--text)"}}>{d.val}</span>
+        </div>)}</div>
+      </div>
+    </div>
+    <div className="card" style={{overflow:"hidden"}}>
+      <div style={{padding:"16px 20px",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{fontWeight:600,fontSize:14}}>Recent Orders</div>
+        <span className="tag" style={{background:"rgba(201,168,76,.12)",color:"var(--gold)"}}>Latest 5</span>
+      </div>
+      <div style={{overflowX:"auto"}}><table>
+        <thead><tr><th>Order</th><th>Customer</th><th>Book</th><th>Amount</th><th>Status</th></tr></thead>
+        <tbody>{INIT_ORDERS.slice(0,5).map((o,i)=><tr key={i}>
+          <td><span className="mono" style={{color:"var(--gold)",fontSize:12}}>{o.id}</span></td>
+          <td><div style={{display:"flex",alignItems:"center",gap:8}}><Av name={o.customer} size={26}/><span>{o.customer}</span></div></td>
+          <td style={{color:"var(--text2)",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{o.book}</td>
+          <td><span className="mono" style={{fontWeight:600,color:"var(--gold)"}}>{fmt(o.amount)}</span></td>
+          <td><SBadge s={o.status}/></td>
+        </tr>)}</tbody>
+      </table></div>
+    </div>
+  </div>;
+};
+
+// BOOKS TAB
+const BooksTab = () => {
+  const [books,setBooks]=useState(INIT_BOOKS);
+  const [search,setSearch]=useState(""),cat=useState("All"),modal=useState(null),form=useState({title:"",author:"",price:"",category:"Business",status:"Active"}),toast=useState(""),del2=useState(null);
+  const [ct,setCt]=cat;const [mo,setMo]=modal;const [fm,setFm]=form;const [ts,setTs]=toast;const [dc,setDc]=del2;
+  const filtered=books.filter(b=>(ct==="All"||b.category===ct)&&(b.title.toLowerCase().includes(search.toLowerCase())||b.author.toLowerCase().includes(search.toLowerCase())));
+  const openAdd=()=>{setFm({title:"",author:"",price:"",category:"Business",status:"Active"});setMo("add");};
+  const openEdit=b=>{setFm({...b,price:String(b.price)});setMo(b);};
+  const save=()=>{if(!fm.title||!fm.author||!fm.price)return;if(mo==="add"){setBooks([...books,{...fm,id:Date.now(),price:parseFloat(fm.price),sales:0,rating:5.0}]);setTs("Book added!");}else{setBooks(books.map(b=>b.id===fm.id?{...b,...fm,price:parseFloat(fm.price)}:b));setTs("Book updated!");}setMo(null);};
+  const del=id=>{setBooks(books.filter(b=>b.id!==id));setDc(null);setTs("Book deleted.");};
+  const tog=id=>setBooks(books.map(b=>b.id===id?{...b,status:b.status==="Active"?"Inactive":"Active"}:b));
+  return <div className="fade-in">
+    {ts&&<Toast msg={ts} onClose={()=>setTs("")}/>}
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12}}>
+      <h1 className="playfair" style={{fontSize:26,fontWeight:700}}>Books <span style={{fontSize:14,color:"var(--text3)",fontWeight:400}}>({filtered.length})</span></h1>
+      <button className="btn btn-gold" style={{padding:"9px 18px",fontSize:13}} onClick={openAdd}>+ Add Book</button>
+    </div>
+    <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap"}}>
+      <input placeholder="🔍 Search books..." value={search} onChange={e=>setSearch(e.target.value)} style={{flex:"1 1 180px",maxWidth:280}}/>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+        {["All",...ALL_CATS].map(c=><button key={c} onClick={()=>setCt(c)} className="btn" style={{padding:"6px 11px",fontSize:11,border:`1px solid ${ct===c?"var(--gold)":"var(--border)"}`,background:ct===c?"rgba(201,168,76,.12)":"var(--surface2)",color:ct===c?"var(--gold)":"var(--text2)"}}>{c}</button>)}
+      </div>
+    </div>
+    <div className="card" style={{overflow:"hidden"}}><div style={{overflowX:"auto"}}><table>
+      <thead><tr><th>Title</th><th>Author</th><th>Category</th><th>Price</th><th>Sales</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>{filtered.map(b=><tr key={b.id}>
+        <td style={{fontWeight:500,maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{b.title}</td>
+        <td style={{color:"var(--text2)"}}>{b.author}</td>
+        <td><span className="tag" style={{background:"var(--surface2)",color:"var(--text3)"}}>{b.category}</span></td>
+        <td><span className="mono" style={{color:"var(--gold)",fontWeight:600}}>{fmt(b.price)}</span></td>
+        <td style={{color:"var(--text2)"}}>{b.sales}</td>
+        <td><SBadge s={b.status}/></td>
+        <td><div style={{display:"flex",gap:5}}>
+          <button className="btn btn-ghost" style={{padding:"4px 9px",fontSize:11}} onClick={()=>openEdit(b)}>Edit</button>
+          <button className="btn" style={{padding:"4px 9px",fontSize:11,background:"rgba(201,168,76,.08)",border:"1px solid rgba(201,168,76,.2)",color:"var(--gold)"}} onClick={()=>tog(b.id)}>{b.status==="Active"?"Pause":"Resume"}</button>
+          <button className="btn btn-danger" style={{padding:"4px 9px",fontSize:11}} onClick={()=>setDc(b.id)}>Del</button>
+        </div></td>
+      </tr>)}</tbody>
+    </table></div></div>
+    {mo!==null&&<div className="modal-bg" onClick={e=>e.target===e.currentTarget&&setMo(null)}><div className="modal fade-in" style={{padding:28}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:22}}>
+        <h2 className="playfair" style={{fontSize:20,fontWeight:700}}>{mo==="add"?"Add New Book":"Edit Book"}</h2>
+        <button className="btn btn-ghost" style={{padding:"5px 9px"}} onClick={()=>setMo(null)}>✕</button>
+      </div>
+      <div style={{display:"grid",gap:13}}>
+        <div><label>Book Title *</label><input placeholder="Title" value={fm.title} onChange={e=>setFm({...fm,title:e.target.value})}/></div>
+        <div><label>Author *</label><input placeholder="Author" value={fm.author} onChange={e=>setFm({...fm,author:e.target.value})}/></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div><label>Price *</label><input placeholder="19.99" value={fm.price} onChange={e=>setFm({...fm,price:e.target.value})}/></div>
+          <div><label>Category</label><select value={fm.category} onChange={e=>setFm({...fm,category:e.target.value})}>{ALL_CATS.map(c=><option key={c}>{c}</option>)}</select></div>
+        </div>
+        <div><label>Status</label><select value={fm.status} onChange={e=>setFm({...fm,status:e.target.value})}><option>Active</option><option>Inactive</option></select></div>
+      </div>
+      <div style={{display:"flex",gap:10,marginTop:22}}>
+        <button className="btn btn-gold" style={{flex:1,padding:"11px"}} onClick={save}>{mo==="add"?"Add Book":"Save"}</button>
+        <button className="btn btn-ghost" style={{padding:"11px 18px"}} onClick={()=>setMo(null)}>Cancel</button>
+      </div>
+    </div></div>}
+    {dc&&<div className="modal-bg" onClick={e=>e.target===e.currentTarget&&setDc(null)}><div className="modal fade-in" style={{padding:28,maxWidth:360,textAlign:"center"}}>
+      <div style={{fontSize:44,marginBottom:10}}>🗑️</div>
+      <h2 className="playfair" style={{fontSize:20,fontWeight:700,marginBottom:8}}>Delete Book?</h2>
+      <p style={{color:"var(--text2)",fontSize:14,marginBottom:22}}>This cannot be undone.</p>
+      <div style={{display:"flex",gap:10}}><button className="btn btn-danger" style={{flex:1,padding:"11px"}} onClick={()=>del(dc)}>Delete</button><button className="btn btn-ghost" style={{flex:1,padding:"11px"}} onClick={()=>setDc(null)}>Cancel</button></div>
+    </div></div>}
+  </div>;
+};
+
+// ORDERS TAB
+const OrdersTab = () => {
+  const [orders,setOrders]=useState(INIT_ORDERS);
+  const [filter,setFilter]=useState("All"),search=useState(""),toast=useState("");
+  const [sr,setSr]=search;const [ts,setTs]=toast;
+  const filtered=orders.filter(o=>(filter==="All"||o.status===filter)&&(o.customer.toLowerCase().includes(sr.toLowerCase())||o.id.includes(sr)||o.book.toLowerCase().includes(sr.toLowerCase())));
+  const upd=(id,st)=>{setOrders(orders.map(o=>o.id===id?{...o,status:st}:o));setTs(`Order ${id} → ${st}`);};
+  return <div className="fade-in">
+    {ts&&<Toast msg={ts} onClose={()=>setTs("")}/>}
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12}}>
+      <h1 className="playfair" style={{fontSize:26,fontWeight:700}}>Orders</h1>
+      <div style={{display:"flex",gap:6}}>
+        {["All","Completed","Processing","Refunded"].map(s=><button key={s} onClick={()=>setFilter(s)} className="btn" style={{padding:"7px 12px",fontSize:12,border:`1px solid ${filter===s?"var(--gold)":"var(--border)"}`,background:filter===s?"rgba(201,168,76,.12)":"var(--surface2)",color:filter===s?"var(--gold)":"var(--text2)"}}>{s}</button>)}
+      </div>
+    </div>
+    <input placeholder="🔍 Search orders..." value={sr} onChange={e=>setSr(e.target.value)} style={{maxWidth:360,marginBottom:16}}/>
+    <div className="card" style={{overflow:"hidden"}}><div style={{overflowX:"auto"}}><table>
+      <thead><tr><th>Order ID</th><th>Customer</th><th>Book</th><th>Amount</th><th>Date</th><th>Status</th><th>Update</th></tr></thead>
+      <tbody>{filtered.map((o,i)=><tr key={i}>
+        <td><span className="mono" style={{color:"var(--gold)",fontSize:12}}>{o.id}</span></td>
+        <td><div style={{display:"flex",alignItems:"center",gap:8}}><Av name={o.customer} size={26}/><span>{o.customer}</span></div></td>
+        <td style={{color:"var(--text2)",maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{o.book}</td>
+        <td><span className="mono" style={{fontWeight:600,color:"var(--gold)"}}>{fmt(o.amount)}</span></td>
+        <td style={{color:"var(--text3)"}}>{o.date}</td>
+        <td><SBadge s={o.status}/></td>
+        <td><select onChange={e=>upd(o.id,e.target.value)} value={o.status} style={{width:"auto",fontSize:11,padding:"4px 8px",borderRadius:6}}><option>Completed</option><option>Processing</option><option>Refunded</option></select></td>
+      </tr>)}</tbody>
+    </table></div></div>
+  </div>;
+};
+
+// CUSTOMERS TAB
+const CustomersTab = () => {
+  const [custs,setCusts]=useState(INIT_CUSTOMERS);
+  const [search,setSearch]=useState(""),toast=useState(""),dc=useState(null);
+  const [ts,setTs]=toast;const [del2,setDel2]=dc;
+  const filtered=custs.filter(c=>c.name.toLowerCase().includes(search.toLowerCase())||c.email.includes(search));
+  const del=id=>{setCusts(custs.filter(c=>c.id!==id));setDel2(null);setTs("Customer removed.");};
+  const tog=id=>setCusts(custs.map(c=>c.id===id?{...c,status:c.status==="Active"?"Inactive":"Active"}:c));
+  return <div className="fade-in">
+    {ts&&<Toast msg={ts} onClose={()=>setTs("")}/>}
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12}}>
+      <h1 className="playfair" style={{fontSize:26,fontWeight:700}}>Customers <span style={{fontSize:14,color:"var(--text3)",fontWeight:400}}>({filtered.length})</span></h1>
+      <span style={{fontSize:13,color:"var(--text3)"}}>Revenue: <span className="mono" style={{color:"var(--gold)",fontWeight:600}}>${custs.reduce((a,c)=>a+c.spent,0).toFixed(2)}</span></span>
+    </div>
+    <input placeholder="🔍 Search by name or email..." value={search} onChange={e=>setSearch(e.target.value)} style={{maxWidth:360,marginBottom:16}}/>
+    <div className="card" style={{overflow:"hidden"}}><div style={{overflowX:"auto"}}><table>
+      <thead><tr><th>Customer</th><th>Email</th><th>Books</th><th>Spent</th><th>Joined</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>{filtered.map(c=><tr key={c.id}>
+        <td><div style={{display:"flex",alignItems:"center",gap:10}}><Av name={c.name} size={30}/><span style={{fontWeight:500}}>{c.name}</span></div></td>
+        <td style={{color:"var(--text2)"}}>{c.email}</td>
+        <td style={{color:"var(--text2)"}}>{c.books}</td>
+        <td><span className="mono" style={{color:"var(--gold)",fontWeight:600}}>{fmt(c.spent)}</span></td>
+        <td style={{color:"var(--text3)"}}>{c.joined}</td>
+        <td><SBadge s={c.status}/></td>
+        <td><div style={{display:"flex",gap:6}}>
+          <button className="btn btn-ghost" style={{padding:"4px 9px",fontSize:11}} onClick={()=>tog(c.id)}>{c.status==="Active"?"Suspend":"Activate"}</button>
+          <button className="btn btn-danger" style={{padding:"4px 9px",fontSize:11}} onClick={()=>setDel2(c.id)}>Remove</button>
+        </div></td>
+      </tr>)}</tbody>
+    </table></div></div>
+    {del2&&<div className="modal-bg" onClick={e=>e.target===e.currentTarget&&setDel2(null)}><div className="modal fade-in" style={{padding:28,maxWidth:360,textAlign:"center"}}>
+      <div style={{fontSize:44,marginBottom:10}}>👤</div>
+      <h2 className="playfair" style={{fontSize:20,fontWeight:700,marginBottom:8}}>Remove Customer?</h2>
+      <p style={{color:"var(--text2)",fontSize:14,marginBottom:22}}>This permanently deletes the account.</p>
+      <div style={{display:"flex",gap:10}}><button className="btn btn-danger" style={{flex:1,padding:"11px"}} onClick={()=>del(del2)}>Remove</button><button className="btn btn-ghost" style={{flex:1,padding:"11px"}} onClick={()=>setDel2(null)}>Cancel</button></div>
+    </div></div>}
+  </div>;
+};
+
+// COUPONS TAB
+const CouponsTab = () => {
+  const [coupons,setCoupons]=useState(INIT_COUPONS);
+  const [modal,setModal]=useState(false),form=useState({code:"",desc:"",discount:"",type:"Percent",expires:"",status:"Active"}),toast=useState("");
+  const [fm,setFm]=form;const [ts,setTs]=toast;
+  const save=()=>{if(!fm.code||!fm.discount)return;setCoupons([...coupons,{...fm,id:Date.now(),uses:0}]);setModal(false);setTs("Coupon created!");};
+  const del=id=>{setCoupons(coupons.filter(c=>c.id!==id));setTs("Coupon deleted.");};
+  const tog=id=>setCoupons(coupons.map(c=>c.id===id?{...c,status:c.status==="Active"?"Expired":"Active"}:c));
+  return <div className="fade-in">
+    {ts&&<Toast msg={ts} onClose={()=>setTs("")}/>}
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12}}>
+      <h1 className="playfair" style={{fontSize:26,fontWeight:700}}>Coupons</h1>
+      <button className="btn btn-gold" style={{padding:"9px 18px",fontSize:13}} onClick={()=>{setFm({code:"",desc:"",discount:"",type:"Percent",expires:"",status:"Active"});setModal(true);}}>+ Create Coupon</button>
+    </div>
+    <div style={{display:"grid",gap:12}}>{coupons.map(c=><div key={c.id} className="card" style={{padding:18,display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+      <div style={{minWidth:110}}><span className="mono" style={{fontSize:16,fontWeight:700,color:"var(--gold)"}}>{c.code}</span></div>
+      <div style={{flex:1,minWidth:160}}><div style={{fontWeight:500,fontSize:13,marginBottom:2}}>{c.desc}</div><div style={{fontSize:11,color:"var(--text3)"}}>{c.uses.toLocaleString()} uses · Expires {c.expires}</div></div>
+      <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+        <span className="mono" style={{fontSize:18,fontWeight:700,color:"var(--green)"}}>{c.discount}</span>
+        <span className="tag" style={{background:"var(--surface2)",color:"var(--text3)"}}>{c.type}</span>
+        <SBadge s={c.status}/>
+        <div style={{display:"flex",gap:6}}>
+          <button className="btn btn-ghost" style={{padding:"5px 10px",fontSize:11}} onClick={()=>tog(c.id)}>{c.status==="Active"?"Deactivate":"Activate"}</button>
+          <button className="btn btn-danger" style={{padding:"5px 10px",fontSize:11}} onClick={()=>del(c.id)}>Delete</button>
+        </div>
+      </div>
+    </div>)}</div>
+    {modal&&<div className="modal-bg" onClick={e=>e.target===e.currentTarget&&setModal(false)}><div className="modal fade-in" style={{padding:28}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:22}}>
+        <h2 className="playfair" style={{fontSize:20,fontWeight:700}}>Create Coupon</h2>
+        <button className="btn btn-ghost" style={{padding:"5px 9px"}} onClick={()=>setModal(false)}>✕</button>
+      </div>
+      <div style={{display:"grid",gap:13}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div><label>Code *</label><input placeholder="SAVE25" value={fm.code} onChange={e=>setFm({...fm,code:e.target.value.toUpperCase()})}/></div>
+          <div><label>Discount *</label><input placeholder="25% or $10" value={fm.discount} onChange={e=>setFm({...fm,discount:e.target.value})}/></div>
+        </div>
+        <div><label>Description</label><input placeholder="e.g. 25% off all books" value={fm.desc} onChange={e=>setFm({...fm,desc:e.target.value})}/></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div><label>Type</label><select value={fm.type} onChange={e=>setFm({...fm,type:e.target.value})}><option>Percent</option><option>Flat</option></select></div>
+          <div><label>Expiry</label><input type="date" value={fm.expires} onChange={e=>setFm({...fm,expires:e.target.value})}/></div>
+        </div>
+      </div>
+      <div style={{display:"flex",gap:10,marginTop:22}}>
+        <button className="btn btn-gold" style={{flex:1,padding:"11px"}} onClick={save}>Create</button>
+        <button className="btn btn-ghost" style={{padding:"11px 18px"}} onClick={()=>setModal(false)}>Cancel</button>
+      </div>
+    </div></div>}
+  </div>;
+};
+
+// CATEGORIES TAB
+const CategoriesTab = () => {
+  const [cats,setCats]=useState(ALL_CATS.map((c,i)=>({id:i,name:c,books:INIT_BOOKS.filter(b=>b.category===c).length,status:"Active"})));
+  const [modal,setModal]=useState(false),newCat=useState(""),toast=useState("");
+  const [nc,setNc]=newCat;const [ts,setTs]=toast;
+  const add=()=>{if(!nc.trim())return;setCats([...cats,{id:Date.now(),name:nc,books:0,status:"Active"}]);setNc("");setModal(false);setTs("Category added!");};
+  const tog=id=>setCats(cats.map(c=>c.id===id?{...c,status:c.status==="Active"?"Inactive":"Active"}:c));
+  const del=id=>{setCats(cats.filter(c=>c.id!==id));setTs("Category deleted.");};
+  return <div className="fade-in">
+    {ts&&<Toast msg={ts} onClose={()=>setTs("")}/>}
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12}}>
+      <h1 className="playfair" style={{fontSize:26,fontWeight:700}}>Categories</h1>
+      <button className="btn btn-gold" style={{padding:"9px 18px",fontSize:13}} onClick={()=>setModal(true)}>+ Add Category</button>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:14}}>
+      {cats.map(c=><div key={c.id} className="card" style={{padding:18}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+          <div><div style={{fontWeight:600,fontSize:14,marginBottom:3}}>{c.name}</div><div style={{fontSize:12,color:"var(--text3)"}}>{c.books} books</div></div>
+          <SBadge s={c.status}/>
+        </div>
+        <div style={{display:"flex",gap:6}}>
+          <button className="btn btn-ghost" style={{flex:1,padding:"6px",fontSize:11}} onClick={()=>tog(c.id)}>{c.status==="Active"?"Disable":"Enable"}</button>
+          <button className="btn btn-danger" style={{padding:"6px 10px",fontSize:11}} onClick={()=>del(c.id)}>🗑</button>
+        </div>
+      </div>)}
+    </div>
+    {modal&&<div className="modal-bg" onClick={e=>e.target===e.currentTarget&&setModal(false)}><div className="modal fade-in" style={{padding:28,maxWidth:400}}>
+      <h2 className="playfair" style={{fontSize:20,fontWeight:700,marginBottom:18}}>Add Category</h2>
+      <div style={{marginBottom:18}}><label>Name *</label><input placeholder="e.g. Language Learning" value={nc} onChange={e=>setNc(e.target.value)} onKeyDown={e=>e.key==="Enter"&&add()}/></div>
+      <div style={{display:"flex",gap:10}}><button className="btn btn-gold" style={{flex:1,padding:"11px"}} onClick={add}>Add</button><button className="btn btn-ghost" style={{padding:"11px 18px"}} onClick={()=>setModal(false)}>Cancel</button></div>
+    </div></div>}
+  </div>;
+};
+
+// MESSAGES TAB
+const MessagesTab = () => {
+  const [msgs,setMsgs]=useState([
+    {id:1,name:"Priya Nair",email:"priya.n@email.com",subject:"Refund Request",msg:"Hi, I purchased 'Code Alchemy' but the PDF is not downloading. Can you help?",date:"Mar 10",read:false,starred:true},
+    {id:2,name:"Omar Farooq",email:"omar.f@email.com",subject:"Bulk Order Inquiry",msg:"Hello! I'd like to purchase 50 copies of 'The Atomic Entrepreneur' for my team. What discounts are available?",date:"Mar 10",read:false,starred:false},
+    {id:3,name:"Emma Bright",email:"emma.b@email.com",subject:"Category Suggestion",msg:"Love the store! Would you consider adding a 'Language Learning' or 'Cooking' category?",date:"Mar 9",read:false,starred:false},
+    {id:4,name:"Sarah Mitchell",email:"sarah@email.com",subject:"Thank you!",msg:"Prompt Mastery changed how I work with AI. Best $28 I ever spent. Please add more AI books!",date:"Mar 8",read:true,starred:true},
+    {id:5,name:"David Chen",email:"david.c@email.com",subject:"Invoice needed",msg:"Can I get a proper invoice for 'Quiet Design'? I need it for business expense reimbursement.",date:"Mar 7",read:true,starred:false},
+  ]);
+  const [sel,setSel]=useState(null),reply=useState(""),toast=useState("");
+  const [rep,setRep]=reply;const [ts,setTs]=toast;
+  const markRead=id=>setMsgs(msgs.map(m=>m.id===id?{...m,read:true}:m));
+  const togStar=id=>setMsgs(msgs.map(m=>m.id===id?{...m,starred:!m.starred}:m));
+  const del=id=>{setMsgs(msgs.filter(m=>m.id!==id));setSel(null);};
+  const send=()=>{if(!rep.trim())return;setTs(`Reply sent to ${sel.email}`);setRep("");markRead(sel.id);};
+  return <div className="fade-in msgs-grid">
+    {ts&&<Toast msg={ts} onClose={()=>setTs("")}/>}
+    <div className="card msgs-list">
+      <div style={{padding:"12px 14px",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{fontWeight:600,fontSize:14}}>Messages</div>
+        <span className="tag" style={{background:"rgba(224,92,75,.12)",color:"var(--red)"}}>{msgs.filter(m=>!m.read).length} new</span>
+      </div>
+      <div style={{overflowY:"auto",flex:1}}>{msgs.map(m=><div key={m.id} onClick={()=>{setSel(m);markRead(m.id);}} style={{padding:"12px 14px",borderBottom:"1px solid var(--border)",cursor:"pointer",background:sel?.id===m.id?"rgba(201,168,76,.06)":m.read?"transparent":"rgba(201,168,76,.03)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+          <div style={{display:"flex",alignItems:"center",gap:7}}>
+            {!m.read&&<div style={{width:6,height:6,borderRadius:"50%",background:"var(--gold)",flexShrink:0}}/>}
+            <span style={{fontWeight:m.read?400:600,fontSize:13}}>{m.name}</span>
+          </div>
+          <span style={{fontSize:10,color:"var(--text3)"}}>{m.date}</span>
+        </div>
+        <div style={{fontSize:12,fontWeight:500,color:"var(--text2)",marginBottom:2}}>{m.subject}</div>
+        <div style={{fontSize:11,color:"var(--text3)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.msg}</div>
+      </div>)}</div>
+    </div>
+    {sel ? <div className="card msgs-detail">
+      <div style={{padding:"14px 18px",borderBottom:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div><div style={{fontWeight:600,fontSize:15}}>{sel.subject}</div><div style={{fontSize:12,color:"var(--text3)"}}>{sel.name} · {sel.email} · {sel.date}</div></div>
+        <div style={{display:"flex",gap:8}}>
+          <button className="btn btn-ghost" style={{padding:"5px 9px",fontSize:14}} onClick={()=>togStar(sel.id)}>{sel.starred?"⭐":"☆"}</button>
+          <button className="btn btn-danger" style={{padding:"5px 9px",fontSize:11}} onClick={()=>del(sel.id)}>Delete</button>
+        </div>
+      </div>
+      <div style={{padding:18,flex:1,overflowY:"auto"}}>
+        <div style={{display:"flex",gap:12,marginBottom:20}}>
+          <Av name={sel.name} size={38}/>
+          <div className="card" style={{padding:14,flex:1,borderRadius:10,background:"var(--surface2)"}}><p style={{fontSize:14,lineHeight:1.8,color:"var(--text2)"}}>{sel.msg}</p></div>
+        </div>
+      </div>
+      <div style={{padding:"14px 18px",borderTop:"1px solid var(--border)"}}>
+        <label style={{marginBottom:8}}>Reply to {sel.email}</label>
+        <textarea value={rep} onChange={e=>setRep(e.target.value)} rows={3} placeholder="Type your reply..." style={{resize:"none",marginBottom:10}}/>
+        <button className="btn btn-gold" style={{padding:"9px 18px",fontSize:13}} onClick={send}>📤 Send Reply</button>
+      </div>
+    </div> : <div className="card msgs-detail" style={{display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:10}}>
+      <div style={{fontSize:44}}>✉️</div>
+      <div style={{fontWeight:600,fontSize:15}}>Select a message</div>
+      <div style={{color:"var(--text3)",fontSize:13}}>Click to view and reply</div>
+    </div>}
+  </div>;
+};
+
+// SETTINGS TAB
+const SettingsTab = ({onLogout}) => {
+  const [form,setForm]=useState({storeName:"DigitalBookStore",email:"dcsystem77@gmail.com",currency:"USD",tax:"0",maintenance:false,reviews:true,downloads:true});
+  const [pass,setPass]=useState({current:"",newp:"",confirm:""});
+  const [toast,setToast]=useState("");
+  const h=k=>e=>setForm({...form,[k]:e.target.type==="checkbox"?e.target.checked:e.target.value});
+  return <div className="fade-in" style={{maxWidth:680}}>
+    {toast&&<Toast msg={toast} onClose={()=>setToast("")}/>}
+    <h1 className="playfair" style={{fontSize:26,fontWeight:700,marginBottom:22}}>Settings</h1>
+    <div className="card" style={{padding:22,marginBottom:14}}>
+      <div style={{fontWeight:700,fontSize:14,marginBottom:16,paddingBottom:10,borderBottom:"1px solid var(--border)"}}>🏪 Store Settings</div>
+      <div style={{display:"grid",gap:13}}>
+        <div><label>Store Name</label><input value={form.storeName} onChange={h("storeName")}/></div>
+        <div><label>Contact Email</label><input value={form.email} onChange={h("email")}/></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div><label>Currency</label><select value={form.currency} onChange={h("currency")}><option>USD</option><option>EUR</option><option>GBP</option><option>PKR</option></select></div>
+          <div><label>Tax Rate (%)</label><input placeholder="0" value={form.tax} onChange={h("tax")}/></div>
+        </div>
+      </div>
+      <div style={{marginTop:14,display:"grid",gap:10}}>
+        {[["maintenance","🔧 Maintenance Mode","Disable store for visitors"],["reviews","⭐ Customer Reviews","Allow customers to leave reviews"],["downloads","⬇️ Auto Downloads","Send download link after purchase"]].map(([k,l,s])=><label key={k} style={{display:"flex",alignItems:"center",gap:12,cursor:"pointer",background:"var(--surface2)",padding:"11px 14px",borderRadius:9,border:"1px solid var(--border)"}}>
+          <input type="checkbox" checked={form[k]} onChange={h(k)} style={{width:16,height:16,accentColor:"var(--gold)"}}/>
+          <div><div style={{fontWeight:500,fontSize:13,color:"var(--text)"}}>{l}</div><div style={{fontSize:11,color:"var(--text3)"}}>{s}</div></div>
+        </label>)}
+      </div>
+      <button className="btn btn-gold" style={{marginTop:16,padding:"10px 22px",fontSize:13}} onClick={()=>setToast("Settings saved!")}>Save Settings</button>
+    </div>
+    <div className="card" style={{padding:22,marginBottom:14}}>
+      <div style={{fontWeight:700,fontSize:14,marginBottom:16,paddingBottom:10,borderBottom:"1px solid var(--border)"}}>🔒 Change Password</div>
+      <div style={{display:"grid",gap:13}}>
+        <div><label>Current Password</label><input type="password" placeholder="••••••••" value={pass.current} onChange={e=>setPass({...pass,current:e.target.value})}/></div>
+        <div><label>New Password</label><input type="password" placeholder="••••••••" value={pass.newp} onChange={e=>setPass({...pass,newp:e.target.value})}/></div>
+        <div><label>Confirm New Password</label><input type="password" placeholder="••••••••" value={pass.confirm} onChange={e=>setPass({...pass,confirm:e.target.value})}/></div>
+      </div>
+      <button className="btn btn-gold" style={{marginTop:16,padding:"10px 22px",fontSize:13}} onClick={()=>{if(pass.newp&&pass.newp===pass.confirm){setToast("Password updated!");setPass({current:"",newp:"",confirm:""});}else setToast("Passwords do not match!");}}>Update Password</button>
+    </div>
+    <div className="card" style={{padding:22,border:"1px solid rgba(224,92,75,.25)"}}>
+      <div style={{fontWeight:700,fontSize:14,marginBottom:10,color:"var(--red)"}}>⚠️ Danger Zone</div>
+      <p style={{fontSize:13,color:"var(--text2)",marginBottom:14}}>Irreversible actions. Proceed with caution.</p>
+      <button className="btn btn-danger" style={{padding:"10px 20px",fontSize:13}} onClick={onLogout}>🚪 Logout from Admin</button>
+    </div>
+  </div>;
+};
+
+// MAIN APP
+function App() {
+  const [auth,setAuth]=useState(false);
+  const [tab,setTab]=useState("dashboard");
+  const [sbOpen,setSbOpen]=useState(false);
+  if(!auth) return <Login onLogin={()=>setAuth(true)}/>;
+  const render=()=>{switch(tab){case"dashboard":return<Dashboard/>;case"books":return<BooksTab/>;case"orders":return<OrdersTab/>;case"customers":return<CustomersTab/>;case"coupons":return<CouponsTab/>;case"categories":return<CategoriesTab/>;case"messages":return<MessagesTab/>;case"settings":return<SettingsTab onLogout={()=>setAuth(false)}/>;default:return<Dashboard/>;}};
+  return <div className="admin-layout">
+    <div className={`sidebar-overlay${sbOpen?" open":""}`} onClick={()=>setSbOpen(false)}/>
+    <div className={`sidebar${sbOpen?" open":""}`}><Sidebar tab={tab} setTab={setTab} onClose={()=>setSbOpen(false)}/></div>
+    <div className="main-area">
+      <div className="topbar">
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <button className="btn btn-ghost hamburger-btn" style={{padding:"6px 10px",fontSize:18,display:"none"}} onClick={()=>setSbOpen(!sbOpen)}>☰</button>
+          <div><span style={{fontSize:14,fontWeight:600,textTransform:"capitalize"}}>{tab}</span><span style={{fontSize:11,color:"var(--text3)",marginLeft:8}}>DigitalBookStore Admin</span></div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <div style={{fontSize:11,color:"var(--text3)",display:"flex",alignItems:"center",gap:5}}><span style={{width:7,height:7,borderRadius:"50%",background:"var(--green)",display:"inline-block",animation:"pulse2 2s infinite"}}/>Live</div>
+          <a href="mailto:dcsystem77@gmail.com" style={{fontSize:12,color:"var(--gold)",textDecoration:"none"}}>📧 Support</a>
+          <button className="btn btn-ghost" style={{padding:"6px 12px",fontSize:12}} onClick={()=>setAuth(false)}>Logout</button>
+        </div>
+      </div>
+      <div className="content">{render()}</div>
+    </div>
+  </div>;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script></body></html>
