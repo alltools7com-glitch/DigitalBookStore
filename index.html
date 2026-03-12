@@ -636,16 +636,31 @@ const CheckoutPage = ({ cart, setCart, setPage }) => {
                     <div style={{fontSize:28}}>📱</div>
                     <div><div style={{fontWeight:700,fontSize:15}}>Pay via UPI</div><div style={{fontSize:12,color:"var(--text2)"}}>Google Pay, PhonePe, Any UPI App</div></div>
                   </div>
-                  <div style={{background:"var(--surface2)",borderRadius:8,padding:"12px 14px",marginBottom:8}}>
+                  <div style={{background:"var(--surface2)",borderRadius:8,padding:"12px 14px",marginBottom:12}}>
                     <div style={{fontSize:12,color:"var(--text3)",marginBottom:4}}>UPI ID:</div>
-                    <div style={{fontFamily:"DM Mono",fontSize:18,fontWeight:700,color:"var(--gold)",letterSpacing:"0.05em"}}>{PAYMENT_INFO.upi}</div>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+                      <div style={{fontFamily:"DM Mono",fontSize:16,fontWeight:700,color:"var(--gold)"}}>{PAYMENT_INFO.upi}</div>
+                      <button onClick={()=>{navigator.clipboard.writeText(PAYMENT_INFO.upi);}} style={{background:"rgba(76,175,130,0.15)",border:"1px solid rgba(76,175,130,0.3)",color:"#4CAF82",borderRadius:6,padding:"5px 10px",fontSize:11,cursor:"pointer",fontFamily:"DM Sans",whiteSpace:"nowrap"}}>📋 Copy</button>
+                    </div>
                   </div>
-                  <div style={{fontSize:12,color:"var(--text3)"}}>💡 Open your UPI app, paste this ID and send exactly <strong style={{color:"var(--text)"}}>${final.toFixed(2)}</strong> to complete payment</div>
+                  <div style={{fontSize:12,color:"var(--text3)",marginBottom:12}}>💡 Amount to send: <strong style={{color:"var(--gold)",fontSize:14}}>${final.toFixed(2)}</strong></div>
+                  {/* Direct UPI App Buttons */}
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                    <a href={`upi://pay?pa=${PAYMENT_INFO.upi}&pn=DigitalBookStore&am=${final.toFixed(2)}&cu=INR&tn=eBook Purchase`} style={{textDecoration:"none"}}>
+                      <button style={{width:"100%",background:"#00C853",border:"none",color:"#fff",borderRadius:8,padding:"10px 6px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"DM Sans"}}>📗 GPay</button>
+                    </a>
+                    <a href={`upi://pay?pa=${PAYMENT_INFO.upi}&pn=DigitalBookStore&am=${final.toFixed(2)}&cu=INR&tn=eBook Purchase`} style={{textDecoration:"none"}}>
+                      <button style={{width:"100%",background:"#5F259F",border:"none",color:"#fff",borderRadius:8,padding:"10px 6px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"DM Sans"}}>💜 PhonePe</button>
+                    </a>
+                    <a href={`upi://pay?pa=${PAYMENT_INFO.upi}&pn=DigitalBookStore&am=${final.toFixed(2)}&cu=INR&tn=eBook Purchase`} style={{textDecoration:"none"}}>
+                      <button style={{width:"100%",background:"#002970",border:"none",color:"#fff",borderRadius:8,padding:"10px 6px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"DM Sans"}}>💙 Paytm</button>
+                    </a>
+                  </div>
                 </div>
-                <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15,borderRadius:10}} onClick={()=>{if(!validate())return;saveOrderToAdmin(cart,name1,name2,email,"upi",final);setStep(2);}}>  
+                <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15,borderRadius:10}} onClick={()=>{if(!validate())return;saveOrderToAdmin(cart,name1,name2,email,"upi",final);setStep(2);}}>
                   ✅ I Have Completed UPI Payment
                 </button>
-                <div style={{textAlign:"center",fontSize:12,color:"var(--text3)",marginTop:8}}>Please ensure your email is filled above so we can deliver your eBook</div>
+                <div style={{textAlign:"center",fontSize:12,color:"var(--text3)",marginTop:8}}>After payment, click the button above to confirm your order</div>
               </div>
             )}
 
@@ -656,17 +671,26 @@ const CheckoutPage = ({ cart, setCart, setPage }) => {
                     <div style={{fontSize:28}}>₿</div>
                     <div><div style={{fontWeight:700,fontSize:15}}>Pay via Bitcoin (BTC)</div><div style={{fontSize:12,color:"var(--text2)"}}>Any BTC wallet — Worldwide</div></div>
                   </div>
-                  <div style={{background:"var(--surface2)",borderRadius:8,padding:"12px 14px",marginBottom:8}}>
+                  <div style={{background:"var(--surface2)",borderRadius:8,padding:"12px 14px",marginBottom:12}}>
                     <div style={{fontSize:12,color:"var(--text3)",marginBottom:6}}>BTC Wallet Address:</div>
-                    <div style={{fontFamily:"DM Mono",fontSize:12,fontWeight:600,color:"var(--gold)",wordBreak:"break-all",lineHeight:1.6,padding:"8px 10px",background:"rgba(201,168,76,0.06)",borderRadius:6,border:"1px solid rgba(201,168,76,0.2)"}}>{PAYMENT_INFO.btc}</div>
-                    <button onClick={()=>{navigator.clipboard.writeText(PAYMENT_INFO.btc);}} style={{marginTop:8,width:"100%",background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.3)",color:"var(--gold)",borderRadius:6,padding:"7px",fontSize:12,cursor:"pointer",fontFamily:"DM Sans"}}>📋 Copy Address</button>
+                    <div style={{fontFamily:"DM Mono",fontSize:11,fontWeight:600,color:"var(--gold)",wordBreak:"break-all",lineHeight:1.6,padding:"8px 10px",background:"rgba(201,168,76,0.06)",borderRadius:6,border:"1px solid rgba(201,168,76,0.2)"}}>{PAYMENT_INFO.btc}</div>
+                    <button onClick={()=>{navigator.clipboard.writeText(PAYMENT_INFO.btc);}} style={{marginTop:8,width:"100%",background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.3)",color:"var(--gold)",borderRadius:6,padding:"8px",fontSize:12,cursor:"pointer",fontFamily:"DM Sans",fontWeight:600}}>📋 Copy BTC Address</button>
                   </div>
-                  <div style={{fontSize:12,color:"var(--text3)"}}>💡 Send the equivalent of <strong style={{color:"var(--text)"}}>${final.toFixed(2)}</strong> in BTC to the address above</div>
+                  <div style={{fontSize:12,color:"var(--text3)",marginBottom:12}}>💡 Amount to send: <strong style={{color:"var(--gold)",fontSize:14}}>${final.toFixed(2)}</strong> worth of BTC</div>
+                  {/* Direct Wallet Buttons */}
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                    <a href={`bitcoin:${PAYMENT_INFO.btc}?amount=${(final/30000).toFixed(8)}&label=DigitalBookStore`} style={{textDecoration:"none"}}>
+                      <button style={{width:"100%",background:"linear-gradient(135deg,#F7931A,#FFAD3B)",border:"none",color:"#fff",borderRadius:8,padding:"11px 8px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"DM Sans"}}>₿ Open in Bitcoin Wallet</button>
+                    </a>
+                    <a href={`https://blockchain.com/btc/payment_request?address=${PAYMENT_INFO.btc}&amount=${(final/30000).toFixed(8)}&message=DigitalBookStore eBook`} target="_blank" rel="noopener noreferrer" style={{textDecoration:"none"}}>
+                      <button style={{width:"100%",background:"rgba(247,147,26,0.15)",border:"1px solid rgba(247,147,26,0.4)",color:"#F7931A",borderRadius:8,padding:"11px 8px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"DM Sans"}}>🌐 Pay via Web</button>
+                    </a>
+                  </div>
                 </div>
-                <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15,borderRadius:10}} onClick={()=>{if(!validate())return;saveOrderToAdmin(cart,name1,name2,email,"crypto",final);setStep(2);}}>  
+                <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15,borderRadius:10}} onClick={()=>{if(!validate())return;saveOrderToAdmin(cart,name1,name2,email,"crypto",final);setStep(2);}}>
                   ✅ I Have Sent Bitcoin Payment
                 </button>
-                <div style={{textAlign:"center",fontSize:12,color:"var(--text3)",marginTop:8}}>Please ensure your email is filled above so we can deliver your eBook</div>
+                <div style={{textAlign:"center",fontSize:12,color:"var(--text3)",marginTop:8}}>After sending BTC, click the button above to confirm your order</div>
               </div>
             )}
           </div>
