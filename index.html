@@ -62,8 +62,10 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
   <script>emailjs.init("FOQSRHAOT8S2GtO54");</script>
+  <!-- ═══ QR Code — from cdnjs (same server as React, guaranteed to work) ═══ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>body{margin:0;padding:0;}</style>
 </head>
 <body>
@@ -712,6 +714,14 @@ const CheckoutPage = ({ cart, setCart, setPage }) => {
   const [formErr, setFormErr] = useState("");
   const [utrRef, setUtrRef] = useState("");
   const [txnHash, setTxnHash] = useState("");
+  const [inrRate, setInrRate] = useState(92);
+  const [rateLoaded, setRateLoaded] = useState(false);
+  useEffect(()=>{
+    fetch('https://api.exchangerate-api.com/v4/latest/USD')
+      .then(r=>r.json())
+      .then(d=>{ if(d.rates&&d.rates.INR){ setInrRate(d.rates.INR); setRateLoaded(true); } })
+      .catch(()=>{ setRateLoaded(true); });
+  },[]);
   const total = cart.reduce((s,b)=>s+b.price,0);
   const discount = couponApplied?total*0.2:0;
   const final = total-discount;
@@ -757,11 +767,14 @@ const CheckoutPage = ({ cart, setCart, setPage }) => {
                   </div>
                   <div style={{fontSize:12,color:"var(--text3)"}}>💡 Click "Pay Now" — you will be securely redirected to PayPal to complete your payment</div>
                 </div>
-                <a href={`${PAYMENT_INFO.paypal_link}/${final.toFixed(2)}`} target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",display:"block"}}>
-                  <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15,borderRadius:10}} onClick={()=>{if(!validate())return;setTimeout(()=>setStep(2),1500);}}>  
-                    🅿️ Pay ${final.toFixed(2)} via PayPal →
-                  </button>
-                </a>
+                <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15,borderRadius:10}} onClick={()=>{
+                  if(!validate())return;
+                  saveOrderToAdmin(cart,name1,name2,email,"paypal",final);
+                  window.open(`${PAYMENT_INFO.paypal_link}/${final.toFixed(2)}`,"_blank");
+                  setStep(2);
+                }}>
+                  🅿️ Pay ${final.toFixed(2)} via PayPal →
+                </button>
               </div>
             )}
 
@@ -770,29 +783,38 @@ const CheckoutPage = ({ cart, setCart, setPage }) => {
               const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
               const amt = final.toFixed(2);
 
-              // USD → INR conversion (live rate fetch)
-              const [inrRate, setInrRate] = React.useState(92); // fallback rate (March 2026)
-              const [rateLoaded, setRateLoaded] = React.useState(false);
-              React.useEffect(()=>{
-                fetch('https://api.exchangerate-api.com/v4/latest/USD')
-                  .then(r=>r.json())
-                  .then(d=>{ if(d.rates&&d.rates.INR){ setInrRate(d.rates.INR); setRateLoaded(true); } })
-                  .catch(()=>{ setRateLoaded(true); }); // use fallback on error
-              },[]);
-              const inrAmt = Math.ceil(final * inrRate); // round up to nearest rupee
+              // INR conversion — inrRate comes from CheckoutPage state (hooks-safe)
+              const inrAmt = Math.ceil(final * inrRate);
               const inrAmtStr = inrAmt.toFixed(2);
 
               const upiBase = `pa=${PAYMENT_INFO.upi}&pn=DigitalBookStore&am=${inrAmtStr}&cu=INR&tn=eBook`;
               const upiDeepLink = `upi://pay?${upiBase}`;
 
-              // QR Code — image API, amount in INR
+              // QR Code — qrcodejs from cdnjs (same server as React, no external API)
               const UpiQR = () => {
-                const qrData = encodeURIComponent(upiDeepLink);
-                const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${qrData}`;
+                const divRef = React.useRef(null);
+                React.useEffect(()=>{
+                  if(!divRef.current) return;
+                  divRef.current.innerHTML = '';
+                  if(window.QRCode){
+                    new window.QRCode(divRef.current, {
+                      text: upiDeepLink,
+                      width: 200,
+                      height: 200,
+                      colorDark: "#000000",
+                      colorLight: "#ffffff",
+                      correctLevel: window.QRCode.CorrectLevel.M
+                    });
+                  } else {
+                    // Fallback: show UPI ID text if library not loaded
+                    divRef.current.style.cssText='width:200px;height:200px;display:flex;align-items:center;justify-content:center;background:#f5f5f5;border-radius:6px;padding:12px;text-align:center;font-size:12px;color:#333;word-break:break-all;';
+                    divRef.current.innerText='UPI ID: '+PAYMENT_INFO.upi;
+                  }
+                }, []);
                 return (
                   <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:10}}>
                     <div style={{background:"#fff",padding:12,borderRadius:12,boxShadow:"0 4px 20px rgba(0,0,0,0.15)",border:"2px solid rgba(76,175,130,0.3)"}}>
-                      <img src={qrSrc} alt="UPI QR Code" width={200} height={200} style={{display:"block",borderRadius:6}}/>
+                      <div ref={divRef} style={{width:200,height:200}}/>
                     </div>
                     <div style={{fontSize:11,color:"var(--text3)",textAlign:"center",lineHeight:1.5}}>
                       📷 Scan with any UPI app<br/>
@@ -929,13 +951,13 @@ const CheckoutPage = ({ cart, setCart, setPage }) => {
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                     <button
                       style={{background:"linear-gradient(145deg,#3375BB,#1A5FA8)",border:"none",color:"#fff",borderRadius:12,padding:"15px 8px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"DM Sans",boxShadow:"0 4px 14px rgba(51,117,187,0.4)"}}
-                      onClick={()=>{ window.location.href=`https://link.trustwallet.com/send?coin=0&address=${PAYMENT_INFO.btc}&amount=${(final/30000).toFixed(8)}`; }}>
+                      onClick={()=>{ window.location.href=`https://link.trustwallet.com/send?coin=0&address=${PAYMENT_INFO.btc}&amount=${(final/84000).toFixed(8)}`; }}>
                       <div style={{fontSize:22,marginBottom:4}}>🛡️</div>
                       <div style={{fontSize:12}}>Trust Wallet</div>
                     </button>
                     <button
                       style={{background:"linear-gradient(145deg,#F7931A,#E07B10)",border:"none",color:"#fff",borderRadius:12,padding:"15px 8px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"DM Sans",boxShadow:"0 4px 14px rgba(247,147,26,0.4)"}}
-                      onClick={()=>{ window.location.href=`bitcoin:${PAYMENT_INFO.btc}?amount=${(final/30000).toFixed(8)}&label=DigitalBookStore`; }}>
+                      onClick={()=>{ window.location.href=`bitcoin:${PAYMENT_INFO.btc}?amount=${(final/84000).toFixed(8)}&label=DigitalBookStore`; }}>
                       <div style={{fontSize:22,marginBottom:4}}>₿</div>
                       <div style={{fontSize:12}}>Bitcoin App</div>
                     </button>
@@ -984,7 +1006,7 @@ const CheckoutPage = ({ cart, setCart, setPage }) => {
                     </div>
                   ))}
                 </div>
-                <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15,marginTop:20}} onClick={()=>{if(!validate())return;saveOrderToAdmin(cart,name1,name2,email,method,final);setStep(2);}}>🔒 Confirm Order — ${final.toFixed(2)}</button>
+                <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15,marginTop:20}} onClick={()=>{if(!validate())return;const txn=method==='upi'?utrRef:method==='crypto'?txnHash:'';saveOrderToAdmin(cart,name1,name2,email,method,final,txn);setStep(2);}}>🔒 Confirm Order — ${final.toFixed(2)}</button>
                 <div style={{textAlign:"center",marginTop:12,fontSize:12,color:"var(--text3)"}}>🔒 SSL Encrypted &nbsp;•&nbsp; Instant Delivery &nbsp;•&nbsp; 30-Day Refund</div>
               </>
             )}
