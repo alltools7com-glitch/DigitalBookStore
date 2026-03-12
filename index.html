@@ -413,14 +413,34 @@ const StorePage = ({ setPage, setSelectedBook, cart, setCart }) => {
   return (
     <div style={{maxWidth:1280,margin:"0 auto",padding:"40px 24px"}}>
       <div style={{marginBottom:40}}><h1 className="playfair" style={{fontSize:"clamp(28px,3vw,44px)",fontWeight:700,marginBottom:8}}>eBook Library</h1><p style={{color:"var(--text2)"}}>Browse our curated collection of premium digital books</p></div>
-      <div style={{display:"flex",gap:12,marginBottom:32,flexWrap:"wrap",alignItems:"center"}} className="store-filters">
-        <input placeholder="🔍  Search books or authors..." value={search} onChange={e=>setSearch(e.target.value)} style={{flex:"1 1 260px",maxWidth:380}}/>
-        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-          {["All",...CATEGORIES.map(c=>c.name)].map(c=><button key={c} onClick={()=>setCat(c)} style={{padding:"8px 14px",borderRadius:8,fontSize:13,border:`1px solid ${cat===c?"var(--gold)":"var(--border)"}`,background:cat===c?"rgba(201,168,76,0.15)":"var(--surface2)",color:cat===c?"var(--gold)":"var(--text2)",cursor:"pointer",fontFamily:"DM Sans"}}>{c}</button>)}
+      <div style={{marginBottom:24}}>
+        {/* Search Bar — full width on mobile */}
+        <div style={{position:"relative",marginBottom:14}}>
+          <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",fontSize:16,pointerEvents:"none"}}>🔍</span>
+          <input
+            placeholder="Search books or authors..."
+            value={search}
+            onChange={e=>setSearch(e.target.value)}
+            style={{width:"100%",paddingLeft:44,paddingRight:search?44:14,boxSizing:"border-box",height:48,fontSize:15,borderRadius:12}}
+          />
+          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:"50%",width:26,height:26,cursor:"pointer",fontSize:14,color:"var(--text2)",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>}
         </div>
-        <select value={sort} onChange={e=>setSort(e.target.value)} style={{width:"auto",minWidth:160}}>
-          <option value="popular">Most Popular</option><option value="rating">Highest Rated</option><option value="price-asc">Price: Low to High</option><option value="price-desc">Price: High to Low</option>
-        </select>
+        {/* Category filters — horizontal scroll on mobile */}
+        <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch",scrollbarWidth:"none",msOverflowStyle:"none",marginBottom:12}}>
+          {["All",...CATEGORIES.map(c=>c.name)].map(c=>(
+            <button key={c} onClick={()=>setCat(c)} style={{padding:"8px 16px",borderRadius:20,fontSize:13,border:`1px solid ${cat===c?"var(--gold)":"var(--border)"}`,background:cat===c?"rgba(201,168,76,0.15)":"var(--surface2)",color:cat===c?"var(--gold)":"var(--text2)",cursor:"pointer",fontFamily:"DM Sans",whiteSpace:"nowrap",flexShrink:0,fontWeight:cat===c?600:400}}>{c}</button>
+          ))}
+        </div>
+        {/* Sort + Result count row */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}>
+          <div style={{fontSize:13,color:"var(--text3)"}}>{filtered.length} book{filtered.length!==1?"s":""} found</div>
+          <select value={sort} onChange={e=>setSort(e.target.value)} style={{width:"auto",minWidth:150,padding:"8px 12px",fontSize:13,borderRadius:8}}>
+            <option value="popular">Most Popular</option>
+            <option value="rating">Highest Rated</option>
+            <option value="price-asc">Price: Low → High</option>
+            <option value="price-desc">Price: High → Low</option>
+          </select>
+        </div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:24}} className="book-grid-store">
         {filtered.map(book=>(
@@ -632,65 +652,131 @@ const CheckoutPage = ({ cart, setCart, setPage }) => {
             {method==="upi"&&(
               <div>
                 <div style={{background:"rgba(76,175,130,0.08)",border:"1px solid rgba(76,175,130,0.25)",borderRadius:12,padding:20,marginBottom:16}}>
-                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-                    <div style={{fontSize:28}}>📱</div>
-                    <div><div style={{fontWeight:700,fontSize:15}}>Pay via UPI</div><div style={{fontSize:12,color:"var(--text2)"}}>Google Pay, PhonePe, Any UPI App</div></div>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+                    <div style={{width:42,height:42,background:"rgba(76,175,130,0.15)",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>📱</div>
+                    <div><div style={{fontWeight:700,fontSize:15}}>Pay via UPI</div><div style={{fontSize:12,color:"var(--text2)"}}>Google Pay • PhonePe • Paytm</div></div>
                   </div>
-                  <div style={{background:"var(--surface2)",borderRadius:8,padding:"12px 14px",marginBottom:12}}>
-                    <div style={{fontSize:12,color:"var(--text3)",marginBottom:4}}>UPI ID:</div>
+
+                  {/* UPI ID Box */}
+                  <div style={{background:"var(--surface2)",borderRadius:10,padding:"12px 14px",marginBottom:10}}>
+                    <div style={{fontSize:11,color:"var(--text3)",marginBottom:4,letterSpacing:"0.05em",textTransform:"uppercase"}}>UPI ID</div>
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
-                      <div style={{fontFamily:"DM Mono",fontSize:16,fontWeight:700,color:"var(--gold)"}}>{PAYMENT_INFO.upi}</div>
-                      <button onClick={()=>{navigator.clipboard.writeText(PAYMENT_INFO.upi);}} style={{background:"rgba(76,175,130,0.15)",border:"1px solid rgba(76,175,130,0.3)",color:"#4CAF82",borderRadius:6,padding:"5px 10px",fontSize:11,cursor:"pointer",fontFamily:"DM Sans",whiteSpace:"nowrap"}}>📋 Copy</button>
+                      <div style={{fontFamily:"DM Mono",fontSize:15,fontWeight:700,color:"var(--gold)"}}>{PAYMENT_INFO.upi}</div>
+                      <button onClick={()=>{navigator.clipboard.writeText(PAYMENT_INFO.upi);alert("UPI ID Copied!");}} style={{background:"rgba(76,175,130,0.2)",border:"1px solid rgba(76,175,130,0.4)",color:"#4CAF82",borderRadius:7,padding:"6px 12px",fontSize:12,cursor:"pointer",fontFamily:"DM Sans",fontWeight:600,whiteSpace:"nowrap"}}>📋 Copy</button>
                     </div>
                   </div>
-                  <div style={{fontSize:12,color:"var(--text3)",marginBottom:12}}>💡 Amount to send: <strong style={{color:"var(--gold)",fontSize:14}}>${final.toFixed(2)}</strong></div>
-                  {/* Direct UPI App Buttons */}
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-                    <a href={`upi://pay?pa=${PAYMENT_INFO.upi}&pn=DigitalBookStore&am=${final.toFixed(2)}&cu=INR&tn=eBook Purchase`} style={{textDecoration:"none"}}>
-                      <button style={{width:"100%",background:"#00C853",border:"none",color:"#fff",borderRadius:8,padding:"10px 6px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"DM Sans"}}>📗 GPay</button>
-                    </a>
-                    <a href={`upi://pay?pa=${PAYMENT_INFO.upi}&pn=DigitalBookStore&am=${final.toFixed(2)}&cu=INR&tn=eBook Purchase`} style={{textDecoration:"none"}}>
-                      <button style={{width:"100%",background:"#5F259F",border:"none",color:"#fff",borderRadius:8,padding:"10px 6px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"DM Sans"}}>💜 PhonePe</button>
-                    </a>
-                    <a href={`upi://pay?pa=${PAYMENT_INFO.upi}&pn=DigitalBookStore&am=${final.toFixed(2)}&cu=INR&tn=eBook Purchase`} style={{textDecoration:"none"}}>
-                      <button style={{width:"100%",background:"#002970",border:"none",color:"#fff",borderRadius:8,padding:"10px 6px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"DM Sans"}}>💙 Paytm</button>
-                    </a>
+
+                  {/* Amount */}
+                  <div style={{background:"rgba(201,168,76,0.08)",border:"1px solid rgba(201,168,76,0.2)",borderRadius:8,padding:"10px 14px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontSize:13,color:"var(--text2)"}}>Amount to Pay:</span>
+                    <span style={{fontSize:18,fontWeight:700,color:"var(--gold)",fontFamily:"DM Mono"}}>${final.toFixed(2)}</span>
                   </div>
+
+                  {/* App Buttons — intent:// goes directly to app, no chooser */}
+                  <div style={{fontSize:12,color:"var(--text3)",marginBottom:10,textAlign:"center"}}>👇 Tap your app to pay directly</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+                    <button
+                      style={{background:"linear-gradient(145deg,#1A73E8,#0F9D58)",border:"none",color:"#fff",borderRadius:12,padding:"14px 6px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"DM Sans",boxShadow:"0 4px 12px rgba(26,115,232,0.35)"}}
+                      onClick={()=>{
+                        const url = `intent://upi/pay?pa=${PAYMENT_INFO.upi}&pn=DigitalBookStore&am=${final.toFixed(2)}&cu=INR&tn=eBook#Intent;scheme=tez;package=com.google.android.apps.nbu.paisa.user;S.browser_fallback_url=https://play.google.com/store/apps/details?id=com.google.android.apps.nbu.paisa.user;end`;
+                        window.location.href = url;
+                      }}>
+                      <div style={{fontSize:20,marginBottom:3}}>G</div>
+                      <div style={{fontSize:11}}>GPay</div>
+                    </button>
+                    <button
+                      style={{background:"linear-gradient(145deg,#5F259F,#8B2EFF)",border:"none",color:"#fff",borderRadius:12,padding:"14px 6px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"DM Sans",boxShadow:"0 4px 12px rgba(95,37,159,0.35)"}}
+                      onClick={()=>{
+                        const url = `intent://pay?pa=${PAYMENT_INFO.upi}&pn=DigitalBookStore&am=${final.toFixed(2)}&cu=INR&tn=eBook#Intent;scheme=upi;package=com.phonepe.app;S.browser_fallback_url=https://play.google.com/store/apps/details?id=com.phonepe.app;end`;
+                        window.location.href = url;
+                      }}>
+                      <div style={{fontSize:20,marginBottom:3}}>₱</div>
+                      <div style={{fontSize:11}}>PhonePe</div>
+                    </button>
+                    <button
+                      style={{background:"linear-gradient(145deg,#00BAF2,#005DAA)",border:"none",color:"#fff",borderRadius:12,padding:"14px 6px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"DM Sans",boxShadow:"0 4px 12px rgba(0,186,242,0.35)"}}
+                      onClick={()=>{
+                        const url = `intent://pay?pa=${PAYMENT_INFO.upi}&pn=DigitalBookStore&am=${final.toFixed(2)}&cu=INR&tn=eBook#Intent;scheme=upi;package=net.one97.paytm;S.browser_fallback_url=https://play.google.com/store/apps/details?id=net.one97.paytm;end`;
+                        window.location.href = url;
+                      }}>
+                      <div style={{fontSize:20,marginBottom:3}}>P</div>
+                      <div style={{fontSize:11}}>Paytm</div>
+                    </button>
+                  </div>
+
+                  {/* Other UPI Apps fallback */}
+                  <button
+                    style={{width:"100%",marginTop:10,background:"rgba(76,175,130,0.08)",border:"1px dashed rgba(76,175,130,0.35)",color:"#4CAF82",borderRadius:10,padding:"11px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"DM Sans"}}
+                    onClick={()=>{
+                      const url = `intent://pay?pa=${PAYMENT_INFO.upi}&pn=DigitalBookStore&am=${final.toFixed(2)}&cu=INR&tn=eBook#Intent;scheme=upi;S.browser_fallback_url=https://play.google.com/store/search?q=upi+payment;end`;
+                      window.location.href = url;
+                    }}>
+                    📱 Other UPI App
+                  </button>
                 </div>
-                <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15,borderRadius:10}} onClick={()=>{if(!validate())return;saveOrderToAdmin(cart,name1,name2,email,"upi",final);setStep(2);}}>
+
+                <button className="btn-gold" style={{width:"100%",padding:"15px",fontSize:15,borderRadius:12,marginBottom:8}} onClick={()=>{if(!validate())return;saveOrderToAdmin(cart,name1,name2,email,"upi",final);setStep(2);}}>
                   ✅ I Have Completed UPI Payment
                 </button>
-                <div style={{textAlign:"center",fontSize:12,color:"var(--text3)",marginTop:8}}>After payment, click the button above to confirm your order</div>
+                <div style={{textAlign:"center",fontSize:12,color:"var(--text3)"}}>After paying in the app, tap the button above to confirm</div>
               </div>
             )}
 
             {method==="crypto"&&(
               <div>
                 <div style={{background:"rgba(247,147,26,0.08)",border:"1px solid rgba(247,147,26,0.25)",borderRadius:12,padding:20,marginBottom:16}}>
-                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-                    <div style={{fontSize:28}}>₿</div>
-                    <div><div style={{fontWeight:700,fontSize:15}}>Pay via Bitcoin (BTC)</div><div style={{fontSize:12,color:"var(--text2)"}}>Any BTC wallet — Worldwide</div></div>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+                    <div style={{width:42,height:42,background:"rgba(247,147,26,0.15)",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>₿</div>
+                    <div><div style={{fontWeight:700,fontSize:15}}>Pay via Bitcoin (BTC)</div><div style={{fontSize:12,color:"var(--text2)"}}>Trust Wallet • Binance • Any BTC Wallet</div></div>
                   </div>
-                  <div style={{background:"var(--surface2)",borderRadius:8,padding:"12px 14px",marginBottom:12}}>
-                    <div style={{fontSize:12,color:"var(--text3)",marginBottom:6}}>BTC Wallet Address:</div>
-                    <div style={{fontFamily:"DM Mono",fontSize:11,fontWeight:600,color:"var(--gold)",wordBreak:"break-all",lineHeight:1.6,padding:"8px 10px",background:"rgba(201,168,76,0.06)",borderRadius:6,border:"1px solid rgba(201,168,76,0.2)"}}>{PAYMENT_INFO.btc}</div>
-                    <button onClick={()=>{navigator.clipboard.writeText(PAYMENT_INFO.btc);}} style={{marginTop:8,width:"100%",background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.3)",color:"var(--gold)",borderRadius:6,padding:"8px",fontSize:12,cursor:"pointer",fontFamily:"DM Sans",fontWeight:600}}>📋 Copy BTC Address</button>
+
+                  {/* BTC Address */}
+                  <div style={{background:"var(--surface2)",borderRadius:10,padding:"12px 14px",marginBottom:10}}>
+                    <div style={{fontSize:11,color:"var(--text3)",marginBottom:6,letterSpacing:"0.05em",textTransform:"uppercase"}}>BTC Wallet Address</div>
+                    <div style={{fontFamily:"DM Mono",fontSize:11,fontWeight:600,color:"var(--gold)",wordBreak:"break-all",lineHeight:1.8,background:"rgba(201,168,76,0.06)",borderRadius:6,padding:"8px 10px",border:"1px solid rgba(201,168,76,0.15)",marginBottom:8}}>{PAYMENT_INFO.btc}</div>
+                    <button onClick={()=>{navigator.clipboard.writeText(PAYMENT_INFO.btc);alert("BTC Address Copied!");}} style={{width:"100%",background:"rgba(247,147,26,0.12)",border:"1px solid rgba(247,147,26,0.3)",color:"#F7931A",borderRadius:8,padding:"9px",fontSize:13,cursor:"pointer",fontFamily:"DM Sans",fontWeight:600}}>📋 Copy BTC Address</button>
                   </div>
-                  <div style={{fontSize:12,color:"var(--text3)",marginBottom:12}}>💡 Amount to send: <strong style={{color:"var(--gold)",fontSize:14}}>${final.toFixed(2)}</strong> worth of BTC</div>
-                  {/* Direct Wallet Buttons */}
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                    <a href={`bitcoin:${PAYMENT_INFO.btc}?amount=${(final/30000).toFixed(8)}&label=DigitalBookStore`} style={{textDecoration:"none"}}>
-                      <button style={{width:"100%",background:"linear-gradient(135deg,#F7931A,#FFAD3B)",border:"none",color:"#fff",borderRadius:8,padding:"11px 8px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"DM Sans"}}>₿ Open in Bitcoin Wallet</button>
-                    </a>
-                    <a href={`https://blockchain.com/btc/payment_request?address=${PAYMENT_INFO.btc}&amount=${(final/30000).toFixed(8)}&message=DigitalBookStore eBook`} target="_blank" rel="noopener noreferrer" style={{textDecoration:"none"}}>
-                      <button style={{width:"100%",background:"rgba(247,147,26,0.15)",border:"1px solid rgba(247,147,26,0.4)",color:"#F7931A",borderRadius:8,padding:"11px 8px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"DM Sans"}}>🌐 Pay via Web</button>
-                    </a>
+
+                  {/* Amount */}
+                  <div style={{background:"rgba(201,168,76,0.08)",border:"1px solid rgba(201,168,76,0.2)",borderRadius:8,padding:"10px 14px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontSize:13,color:"var(--text2)"}}>Amount to Send:</span>
+                    <span style={{fontSize:18,fontWeight:700,color:"var(--gold)",fontFamily:"DM Mono"}}>${final.toFixed(2)}</span>
+                  </div>
+
+                  {/* Wallet Buttons */}
+                  <div style={{fontSize:12,color:"var(--text3)",marginBottom:10,textAlign:"center"}}>👇 Open your preferred wallet</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                    <button
+                      style={{background:"linear-gradient(145deg,#3375BB,#0033AD)",border:"none",color:"#fff",borderRadius:12,padding:"13px 8px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"DM Sans",boxShadow:"0 4px 12px rgba(51,117,187,0.35)"}}
+                      onClick={()=>{ window.location.href=`bitcoin:${PAYMENT_INFO.btc}?amount=${(final/30000).toFixed(8)}&label=DigitalBookStore`; }}>
+                      <div style={{fontSize:18,marginBottom:3}}>🛡️</div>
+                      <div style={{fontSize:11}}>Trust Wallet</div>
+                    </button>
+                    <button
+                      style={{background:"linear-gradient(145deg,#F0B90B,#D49B0A)",border:"none",color:"#000",borderRadius:12,padding:"13px 8px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"DM Sans",boxShadow:"0 4px 12px rgba(240,185,11,0.35)"}}
+                      onClick={()=>{ window.location.href=`bnc://app.binance.com/payment/send?amount=${(final/30000).toFixed(8)}&address=${PAYMENT_INFO.btc}&coin=BTC`; }}>
+                      <div style={{fontSize:18,marginBottom:3}}>🟡</div>
+                      <div style={{fontSize:11}}>Binance</div>
+                    </button>
+                    <button
+                      style={{background:"linear-gradient(145deg,#F7931A,#E8820A)",border:"none",color:"#fff",borderRadius:12,padding:"13px 8px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"DM Sans",boxShadow:"0 4px 12px rgba(247,147,26,0.35)"}}
+                      onClick={()=>{ window.location.href=`bitcoin:${PAYMENT_INFO.btc}?amount=${(final/30000).toFixed(8)}`; }}>
+                      <div style={{fontSize:18,marginBottom:3}}>₿</div>
+                      <div style={{fontSize:11}}>Bitcoin Wallet</div>
+                    </button>
+                    <button
+                      style={{background:"linear-gradient(145deg,#333,#555)",border:"none",color:"#fff",borderRadius:12,padding:"13px 8px",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"DM Sans",boxShadow:"0 4px 12px rgba(0,0,0,0.3)"}}
+                      onClick={()=>{ window.open(`https://commerce.coinbase.com/pay/${PAYMENT_INFO.btc}?amount=${final.toFixed(2)}&currency=USD`,'_blank'); }}>
+                      <div style={{fontSize:18,marginBottom:3}}>🔵</div>
+                      <div style={{fontSize:11}}>Coinbase</div>
+                    </button>
                   </div>
                 </div>
-                <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15,borderRadius:10}} onClick={()=>{if(!validate())return;saveOrderToAdmin(cart,name1,name2,email,"crypto",final);setStep(2);}}>
+
+                <button className="btn-gold" style={{width:"100%",padding:"15px",fontSize:15,borderRadius:12,marginBottom:8}} onClick={()=>{if(!validate())return;saveOrderToAdmin(cart,name1,name2,email,"crypto",final);setStep(2);}}>
                   ✅ I Have Sent Bitcoin Payment
                 </button>
-                <div style={{textAlign:"center",fontSize:12,color:"var(--text3)",marginTop:8}}>After sending BTC, click the button above to confirm your order</div>
+                <div style={{textAlign:"center",fontSize:12,color:"var(--text3)"}}>After sending BTC, tap the button above to confirm your order</div>
               </div>
             )}
           </div>
