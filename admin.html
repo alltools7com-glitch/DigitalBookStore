@@ -232,7 +232,8 @@ const Dashboard = () => {
 
 // BOOKS TAB
 const BooksTab = () => {
-  const [books,setBooks]=useState(INIT_BOOKS);
+  const [books,setBooks]=useState(()=>{try{const s=localStorage.getItem("dbs_books");return s?JSON.parse(s):INIT_BOOKS;}catch{return INIT_BOOKS;}});
+  useEffect(()=>{try{localStorage.setItem("dbs_books",JSON.stringify(books));}catch{}},[books]);
   const [search,setSearch]=useState(""),cat=useState("All"),modal=useState(null),form=useState({title:"",author:"",price:"",category:"Business",status:"Active"}),toast=useState(""),del2=useState(null);
   const [ct,setCt]=cat;const [mo,setMo]=modal;const [fm,setFm]=form;const [ts,setTs]=toast;const [dc,setDc]=del2;
   const filtered=books.filter(b=>(ct==="All"||b.category===ct)&&(b.title.toLowerCase().includes(search.toLowerCase())||b.author.toLowerCase().includes(search.toLowerCase())));
@@ -299,7 +300,8 @@ const BooksTab = () => {
 
 // ORDERS TAB
 const OrdersTab = () => {
-  const [orders,setOrders]=useState(INIT_ORDERS);
+  const [orders,setOrders]=useState(()=>{try{const s=localStorage.getItem("dbs_orders");return s?JSON.parse(s):INIT_ORDERS;}catch{return INIT_ORDERS;}});
+  useEffect(()=>{try{localStorage.setItem("dbs_orders",JSON.stringify(orders));}catch{}},[orders]);
   const [filter,setFilter]=useState("All"),search=useState(""),toast=useState("");
   const [sr,setSr]=search;const [ts,setTs]=toast;
   const filtered=orders.filter(o=>(filter==="All"||o.status===filter)&&(o.customer.toLowerCase().includes(sr.toLowerCase())||o.id.includes(sr)||o.book.toLowerCase().includes(sr.toLowerCase())));
@@ -330,7 +332,8 @@ const OrdersTab = () => {
 
 // CUSTOMERS TAB
 const CustomersTab = () => {
-  const [custs,setCusts]=useState(INIT_CUSTOMERS);
+  const [custs,setCusts]=useState(()=>{try{const s=localStorage.getItem("dbs_customers");return s?JSON.parse(s):INIT_CUSTOMERS;}catch{return INIT_CUSTOMERS;}});
+  useEffect(()=>{try{localStorage.setItem("dbs_customers",JSON.stringify(custs));}catch{}},[custs]);
   const [search,setSearch]=useState(""),toast=useState(""),dc=useState(null);
   const [ts,setTs]=toast;const [del2,setDel2]=dc;
   const filtered=custs.filter(c=>c.name.toLowerCase().includes(search.toLowerCase())||c.email.includes(search));
@@ -369,7 +372,8 @@ const CustomersTab = () => {
 
 // COUPONS TAB
 const CouponsTab = () => {
-  const [coupons,setCoupons]=useState(INIT_COUPONS);
+  const [coupons,setCoupons]=useState(()=>{try{const s=localStorage.getItem("dbs_coupons");return s?JSON.parse(s):INIT_COUPONS;}catch{return INIT_COUPONS;}});
+  useEffect(()=>{try{localStorage.setItem("dbs_coupons",JSON.stringify(coupons));}catch{}},[coupons]);
   const [modal,setModal]=useState(false),form=useState({code:"",desc:"",discount:"",type:"Percent",expires:"",status:"Active"}),toast=useState("");
   const [fm,setFm]=form;const [ts,setTs]=toast;
   const save=()=>{if(!fm.code||!fm.discount)return;setCoupons([...coupons,{...fm,id:Date.now(),uses:0}]);setModal(false);setTs("Coupon created!");};
@@ -420,7 +424,8 @@ const CouponsTab = () => {
 
 // CATEGORIES TAB
 const CategoriesTab = () => {
-  const [cats,setCats]=useState(ALL_CATS.map((c,i)=>({id:i,name:c,books:INIT_BOOKS.filter(b=>b.category===c).length,status:"Active"})));
+  const [cats,setCats]=useState(()=>{try{const s=localStorage.getItem("dbs_cats");return s?JSON.parse(s):ALL_CATS.map((c,i)=>({id:i,name:c,books:INIT_BOOKS.filter(b=>b.category===c).length,status:"Active"}));}catch{return ALL_CATS.map((c,i)=>({id:i,name:c,books:INIT_BOOKS.filter(b=>b.category===c).length,status:"Active"}));}});
+  useEffect(()=>{try{localStorage.setItem("dbs_cats",JSON.stringify(cats));}catch{}},[cats]);
   const [modal,setModal]=useState(false),newCat=useState(""),toast=useState("");
   const [nc,setNc]=newCat;const [ts,setTs]=toast;
   const add=()=>{if(!nc.trim())return;setCats([...cats,{id:Date.now(),name:nc,books:0,status:"Active"}]);setNc("");setModal(false);setTs("Category added!");};
@@ -454,13 +459,9 @@ const CategoriesTab = () => {
 
 // MESSAGES TAB
 const MessagesTab = () => {
-  const [msgs,setMsgs]=useState([
-    {id:1,name:"Priya Nair",email:"priya.n@email.com",subject:"Refund Request",msg:"Hi, I purchased 'Code Alchemy' but the PDF is not downloading. Can you help?",date:"Mar 10",read:false,starred:true},
-    {id:2,name:"Omar Farooq",email:"omar.f@email.com",subject:"Bulk Order Inquiry",msg:"Hello! I'd like to purchase 50 copies of 'The Atomic Entrepreneur' for my team. What discounts are available?",date:"Mar 10",read:false,starred:false},
-    {id:3,name:"Emma Bright",email:"emma.b@email.com",subject:"Category Suggestion",msg:"Love the store! Would you consider adding a 'Language Learning' or 'Cooking' category?",date:"Mar 9",read:false,starred:false},
-    {id:4,name:"Sarah Mitchell",email:"sarah@email.com",subject:"Thank you!",msg:"Prompt Mastery changed how I work with AI. Best $28 I ever spent. Please add more AI books!",date:"Mar 8",read:true,starred:true},
-    {id:5,name:"David Chen",email:"david.c@email.com",subject:"Invoice needed",msg:"Can I get a proper invoice for 'Quiet Design'? I need it for business expense reimbursement.",date:"Mar 7",read:true,starred:false},
-  ]);
+  const INIT_MSGS_DATA=[{id:1,name:"Priya Nair",email:"priya.n@email.com",subject:"Refund Request",msg:"Hi, I purchased Code Alchemy but the PDF is not downloading. Can you help?",date:"Mar 10",read:false,starred:true},{id:2,name:"Omar Farooq",email:"omar.f@email.com",subject:"Bulk Order Inquiry",msg:"Hello! I want to purchase 50 copies for my team. What discounts are available?",date:"Mar 10",read:false,starred:false},{id:3,name:"Emma Bright",email:"emma.b@email.com",subject:"Category Suggestion",msg:"Love the store! Would you consider adding a Language Learning or Cooking category?",date:"Mar 9",read:false,starred:false},{id:4,name:"Sarah Mitchell",email:"sarah@email.com",subject:"Thank you!",msg:"Prompt Mastery changed how I work with AI. Best purchase ever. Please add more AI books!",date:"Mar 8",read:true,starred:true},{id:5,name:"David Chen",email:"david.c@email.com",subject:"Invoice needed",msg:"Can I get a proper invoice for Quiet Design? I need it for business expense reimbursement.",date:"Mar 7",read:true,starred:false}];
+  const [msgs,setMsgs]=useState(()=>{try{const s=localStorage.getItem("dbs_msgs");return s?JSON.parse(s):INIT_MSGS_DATA;}catch{return INIT_MSGS_DATA;}});
+  useEffect(()=>{try{localStorage.setItem("dbs_msgs",JSON.stringify(msgs));}catch{}},[msgs]);
   const [sel,setSel]=useState(null),reply=useState(""),toast=useState("");
   const [rep,setRep]=reply;const [ts,setTs]=toast;
   const markRead=id=>setMsgs(msgs.map(m=>m.id===id?{...m,read:true}:m));
@@ -552,7 +553,10 @@ const SettingsTab = ({onLogout}) => {
     <div className="card" style={{padding:22,border:"1px solid rgba(224,92,75,.25)"}}>
       <div style={{fontWeight:700,fontSize:14,marginBottom:10,color:"var(--red)"}}>⚠️ Danger Zone</div>
       <p style={{fontSize:13,color:"var(--text2)",marginBottom:14}}>Irreversible actions. Proceed with caution.</p>
-      <button className="btn btn-danger" style={{padding:"10px 20px",fontSize:13}} onClick={onLogout}>🚪 Logout from Admin</button>
+      <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+        <button className="btn btn-danger" style={{padding:"10px 20px",fontSize:13}} onClick={onLogout}>🚪 Logout from Admin</button>
+        <button className="btn btn-danger" style={{padding:"10px 20px",fontSize:13}} onClick={()=>{if(window.confirm("Sab data reset hoga — INIT data wapas aa jayega. Sure ho?")){['dbs_books','dbs_orders','dbs_customers','dbs_coupons','dbs_cats','dbs_msgs'].forEach(k=>localStorage.removeItem(k));setToast("Data reset! Page refresh karo.");}}}>🔄 Reset All Data</button>
+      </div>
     </div>
   </div>;
 };
