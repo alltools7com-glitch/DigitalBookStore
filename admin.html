@@ -115,7 +115,7 @@ const av = name => name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase(
 const avColor = name => { const h=name.split("").reduce((a,c)=>a+c.charCodeAt(0),0)%360; return `hsl(${h},50%,42%)`; };
 
 const SBadge = ({s}) => {
-  const m={Active:{bg:"rgba(76,175,130,.15)",c:"#4CAF82"},Inactive:{bg:"rgba(224,92,75,.1)",c:"#e05c4b"},Completed:{bg:"rgba(76,175,130,.15)",c:"#4CAF82"},Processing:{bg:"rgba(201,168,76,.15)",c:"#C9A84C"},Refunded:{bg:"rgba(124,159,176,.12)",c:"#7C9FB0"},Expired:{bg:"rgba(224,92,75,.1)",c:"#e05c4b"}};
+  const m={Active:{bg:"rgba(76,175,130,.15)",c:"#4CAF82"},Inactive:{bg:"rgba(224,92,75,.1)",c:"#e05c4b"},Completed:{bg:"rgba(76,175,130,.15)",c:"#4CAF82"},Processing:{bg:"rgba(201,168,76,.15)",c:"#C9A84C"},Refunded:{bg:"rgba(124,159,176,.12)",c:"#7C9FB0"},Expired:{bg:"rgba(224,92,75,.1)",c:"#e05c4b"},Pending:{bg:"rgba(247,147,26,.15)",c:"#F7931A"},Delivered:{bg:"rgba(167,139,250,.15)",c:"#A78BFA"}};
   const d=m[s]||{bg:"rgba(90,87,82,.2)",c:"#8b8882"};
   return <span className="tag" style={{background:d.bg,color:d.c}}>{s}</span>;
 };
@@ -159,7 +159,7 @@ const Login = ({onLogin}) => {
 };
 
 // SIDEBAR
-const NAV=[{id:"dashboard",icon:"📊",label:"Dashboard"},{id:"books",icon:"📚",label:"Books"},{id:"orders",icon:"🛒",label:"Orders"},{id:"customers",icon:"👥",label:"Customers"},{id:"coupons",icon:"🎟️",label:"Coupons"},{id:"categories",icon:"📁",label:"Categories"},{id:"messages",icon:"✉️",label:"Messages",badge:3},{id:"settings",icon:"⚙️",label:"Settings"}];
+const NAV=[{id:"dashboard",icon:"📊",label:"Dashboard"},{id:"books",icon:"📚",label:"Books"},{id:"orders",icon:"🛒",label:"Orders",pendingKey:true},{id:"customers",icon:"👥",label:"Customers"},{id:"coupons",icon:"🎟️",label:"Coupons"},{id:"categories",icon:"📁",label:"Categories"},{id:"messages",icon:"✉️",label:"Messages",badge:3},{id:"settings",icon:"⚙️",label:"Settings"}];
 const Sidebar = ({tab,setTab,onClose}) => <div className="sidebar">
   <div style={{padding:"20px 16px",borderBottom:"1px solid var(--border)"}}>
     <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -217,12 +217,13 @@ const Dashboard = () => {
         <span className="tag" style={{background:"rgba(201,168,76,.12)",color:"var(--gold)"}}>Latest 5</span>
       </div>
       <div style={{overflowX:"auto"}}><table>
-        <thead><tr><th>Order</th><th>Customer</th><th>Book</th><th>Amount</th><th>Status</th></tr></thead>
-        <tbody>{INIT_ORDERS.slice(0,5).map((o,i)=><tr key={i}>
+        <thead><tr><th>Order</th><th>Customer</th><th>Book</th><th>Amount</th><th>Payment</th><th>Status</th></tr></thead>
+        <tbody>{(()=>{try{const s=localStorage.getItem("dbs_orders");return(s?JSON.parse(s):INIT_ORDERS).slice(0,5);}catch{return INIT_ORDERS.slice(0,5);}})().map((o,i)=><tr key={i} style={{background:o.status==="Pending"?"rgba(247,147,26,0.04)":"transparent"}}>
           <td><span className="mono" style={{color:"var(--gold)",fontSize:12}}>{o.id}</span></td>
-          <td><div style={{display:"flex",alignItems:"center",gap:8}}><Av name={o.customer} size={26}/><span>{o.customer}</span></div></td>
-          <td style={{color:"var(--text2)",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{o.book}</td>
+          <td><div style={{display:"flex",alignItems:"center",gap:8}}><Av name={o.customer} size={26}/><span style={{fontWeight:o.status==="Pending"?700:400}}>{o.customer}</span></div></td>
+          <td style={{color:"var(--text2)",maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{o.book}</td>
           <td><span className="mono" style={{fontWeight:600,color:"var(--gold)"}}>{fmt(o.amount)}</span></td>
+          <td>{o.paymentMethod?<span style={{fontSize:11,fontWeight:600,color:o.paymentMethod==="PayPal"?"#0070F3":o.paymentMethod==="Bitcoin"?"#F7931A":"#4CAF82"}}>{o.paymentMethod==="PayPal"?"🅿️":o.paymentMethod==="Bitcoin"?"₿":"📱"} {o.paymentMethod}</span>:<span style={{fontSize:11,color:"var(--text3)"}}>—</span>}</td>
           <td><SBadge s={o.status}/></td>
         </tr>)}</tbody>
       </table></div>
@@ -303,28 +304,31 @@ const OrdersTab = () => {
   const [orders,setOrders]=useState(()=>{try{const s=localStorage.getItem("dbs_orders");return s?JSON.parse(s):INIT_ORDERS;}catch{return INIT_ORDERS;}});
   useEffect(()=>{try{localStorage.setItem("dbs_orders",JSON.stringify(orders));}catch{}},[orders]);
   const [filter,setFilter]=useState("All"),search=useState(""),toast=useState("");
+  useEffect(()=>{const refresh=()=>{try{const s=localStorage.getItem("dbs_orders");if(s)setOrders(JSON.parse(s));}catch{}};document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh();});return()=>document.removeEventListener("visibilitychange",refresh);},[]);
   const [sr,setSr]=search;const [ts,setTs]=toast;
   const filtered=orders.filter(o=>(filter==="All"||o.status===filter)&&(o.customer.toLowerCase().includes(sr.toLowerCase())||o.id.includes(sr)||o.book.toLowerCase().includes(sr.toLowerCase())));
   const upd=(id,st)=>{setOrders(orders.map(o=>o.id===id?{...o,status:st}:o));setTs(`Order ${id} → ${st}`);};
   return <div className="fade-in">
     {ts&&<Toast msg={ts} onClose={()=>setTs("")}/>}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12}}>
-      <h1 className="playfair" style={{fontSize:26,fontWeight:700}}>Orders</h1>
+      <h1 className="playfair" style={{fontSize:26,fontWeight:700}}>Orders {orders.filter(o=>o.status==="Pending").length>0&&<span style={{fontSize:13,background:"rgba(247,147,26,.2)",color:"#F7931A",borderRadius:20,padding:"3px 10px",fontFamily:"DM Sans",fontWeight:700,verticalAlign:"middle"}}>{orders.filter(o=>o.status==="Pending").length} new</span>}</h1>
       <div style={{display:"flex",gap:6}}>
-        {["All","Completed","Processing","Refunded"].map(s=><button key={s} onClick={()=>setFilter(s)} className="btn" style={{padding:"7px 12px",fontSize:12,border:`1px solid ${filter===s?"var(--gold)":"var(--border)"}`,background:filter===s?"rgba(201,168,76,.12)":"var(--surface2)",color:filter===s?"var(--gold)":"var(--text2)"}}>{s}</button>)}
+        {["All","Pending","Completed","Processing","Refunded"].map(s=><button key={s} onClick={()=>setFilter(s)} className="btn" style={{padding:"7px 12px",fontSize:12,border:`1px solid ${filter===s?"var(--gold)":"var(--border)"}`,background:filter===s?"rgba(201,168,76,.12)":"var(--surface2)",color:filter===s?"var(--gold)":"var(--text2)"}}>{s}</button>)}
       </div>
     </div>
     <input placeholder="🔍 Search orders..." value={sr} onChange={e=>setSr(e.target.value)} style={{maxWidth:360,marginBottom:16}}/>
     <div className="card" style={{overflow:"hidden"}}><div style={{overflowX:"auto"}}><table>
-      <thead><tr><th>Order ID</th><th>Customer</th><th>Book</th><th>Amount</th><th>Date</th><th>Status</th><th>Update</th></tr></thead>
-      <tbody>{filtered.map((o,i)=><tr key={i}>
+      <thead><tr><th>Order ID</th><th>Customer</th><th>Email</th><th>Book</th><th>Amount</th><th>Payment</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody>{filtered.map((o,i)=><tr key={i} style={{background:o.status==="Pending"?"rgba(247,147,26,0.04)":"transparent"}}>
         <td><span className="mono" style={{color:"var(--gold)",fontSize:12}}>{o.id}</span></td>
-        <td><div style={{display:"flex",alignItems:"center",gap:8}}><Av name={o.customer} size={26}/><span>{o.customer}</span></div></td>
-        <td style={{color:"var(--text2)",maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{o.book}</td>
+        <td><div style={{display:"flex",alignItems:"center",gap:8}}><Av name={o.customer} size={26}/><span style={{fontWeight:o.status==="Pending"?700:400}}>{o.customer}</span></div></td>
+        <td style={{color:"var(--text2)",fontSize:12}}>{o.email||"N/A"}</td>
+        <td style={{color:"var(--text2)",maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{o.book}</td>
         <td><span className="mono" style={{fontWeight:600,color:"var(--gold)"}}>{fmt(o.amount)}</span></td>
+        <td>{o.paymentMethod?<span className="tag" style={{background:o.paymentMethod==="PayPal"?"rgba(0,112,243,.15)":o.paymentMethod==="Bitcoin"?"rgba(247,147,26,.15)":"rgba(76,175,130,.15)",color:o.paymentMethod==="PayPal"?"#0070F3":o.paymentMethod==="Bitcoin"?"#F7931A":"#4CAF82",fontSize:10}}>{o.paymentMethod==="PayPal"?"🅿️":o.paymentMethod==="Bitcoin"?"₿":"📱"} {o.paymentMethod}</span>:<span style={{color:"var(--text3)",fontSize:11}}>—</span>}</td>
         <td style={{color:"var(--text3)"}}>{o.date}</td>
         <td><SBadge s={o.status}/></td>
-        <td><select onChange={e=>upd(o.id,e.target.value)} value={o.status} style={{width:"auto",fontSize:11,padding:"4px 8px",borderRadius:6}}><option>Completed</option><option>Processing</option><option>Refunded</option></select></td>
+        <td><select onChange={e=>upd(o.id,e.target.value)} value={o.status} style={{width:"auto",fontSize:11,padding:"4px 8px",borderRadius:6,background:"var(--surface2)",border:"1px solid var(--border)",color:"var(--text)"}}><option>Pending</option><option>Completed</option><option>Delivered</option><option>Processing</option><option>Refunded</option></select></td>
       </tr>)}</tbody>
     </table></div></div>
   </div>;
@@ -516,7 +520,8 @@ const MessagesTab = () => {
 
 // SETTINGS TAB
 const SettingsTab = ({onLogout}) => {
-  const [form,setForm]=useState({storeName:"DigitalBookStore",email:"dcsystem77@gmail.com",currency:"USD",tax:"0",maintenance:false,reviews:true,downloads:true});
+  const [form,setForm]=useState({storeName:"DigitalBookStore",email:"alihaidar9007@gmail.com",currency:"USD",tax:"0",maintenance:false,reviews:true,downloads:true});
+  const [payInfo,setPayInfo]=useState({paypal_link:"https://paypal.me/HaidarAli441",paypal_email:"alihaidar9007@gmail.com",btc:"1Gi8CV7iUvbkPeZ1LX3TzEZY3AZv2MBeaM",upi:"dcsystem77@axl"});
   const [pass,setPass]=useState({current:"",newp:"",confirm:""});
   const [toast,setToast]=useState("");
   const h=k=>e=>setForm({...form,[k]:e.target.type==="checkbox"?e.target.checked:e.target.value});
@@ -540,6 +545,19 @@ const SettingsTab = ({onLogout}) => {
         </label>)}
       </div>
       <button className="btn btn-gold" style={{marginTop:16,padding:"10px 22px",fontSize:13}} onClick={()=>setToast("Settings saved!")}>Save Settings</button>
+    </div>
+    <div className="card" style={{padding:22,marginBottom:14}}>
+      <div style={{fontWeight:700,fontSize:14,marginBottom:16,paddingBottom:10,borderBottom:"1px solid var(--border)"}}>💳 Payment Settings</div>
+      <div style={{display:"grid",gap:13}}>
+        <div><label>PayPal.me Link</label><input value={payInfo.paypal_link} onChange={e=>setPayInfo({...payInfo,paypal_link:e.target.value})}/></div>
+        <div><label>PayPal Email</label><input value={payInfo.paypal_email} onChange={e=>setPayInfo({...payInfo,paypal_email:e.target.value})}/></div>
+        <div><label>Bitcoin (BTC) Address</label><input value={payInfo.btc} onChange={e=>setPayInfo({...payInfo,btc:e.target.value})} style={{fontFamily:"DM Mono",fontSize:12}}/></div>
+        <div><label>UPI ID</label><input value={payInfo.upi} onChange={e=>setPayInfo({...payInfo,upi:e.target.value})}/></div>
+      </div>
+      <div style={{marginTop:14,padding:"10px 14px",background:"rgba(201,168,76,0.06)",border:"1px solid rgba(201,168,76,0.15)",borderRadius:8,fontSize:12,color:"var(--text2)"}}>
+        💡 Yahan payment details update karo — store ke checkout page pe automatically reflect hongi
+      </div>
+      <button className="btn btn-gold" style={{marginTop:14,padding:"10px 22px",fontSize:13}} onClick={()=>setToast("Payment settings saved!")}>Save Payment Settings</button>
     </div>
     <div className="card" style={{padding:22,marginBottom:14}}>
       <div style={{fontWeight:700,fontSize:14,marginBottom:16,paddingBottom:10,borderBottom:"1px solid var(--border)"}}>🔒 Change Password</div>
