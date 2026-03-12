@@ -318,7 +318,7 @@ const OrdersTab = () => {
     </div>
     <input placeholder="🔍 Search orders..." value={sr} onChange={e=>setSr(e.target.value)} style={{maxWidth:360,marginBottom:16}}/>
     <div className="card" style={{overflow:"hidden"}}><div style={{overflowX:"auto"}}><table>
-      <thead><tr><th>Order ID</th><th>Customer</th><th>Email</th><th>Book</th><th>Amount</th><th>Payment</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
+      <thead><tr><th>Order ID</th><th>Customer</th><th>Email</th><th>Book</th><th>Amount</th><th>Payment</th><th>TXN / UTR</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
       <tbody>{filtered.map((o,i)=><tr key={i} style={{background:o.status==="Pending"?"rgba(247,147,26,0.04)":"transparent"}}>
         <td><span className="mono" style={{color:"var(--gold)",fontSize:12}}>{o.id}</span></td>
         <td><div style={{display:"flex",alignItems:"center",gap:8}}><Av name={o.customer} size={26}/><span style={{fontWeight:o.status==="Pending"?700:400}}>{o.customer}</span></div></td>
@@ -326,6 +326,11 @@ const OrdersTab = () => {
         <td style={{color:"var(--text2)",maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{o.book}</td>
         <td><span className="mono" style={{fontWeight:600,color:"var(--gold)"}}>{fmt(o.amount)}</span></td>
         <td>{o.paymentMethod?<span className="tag" style={{background:o.paymentMethod==="PayPal"?"rgba(0,112,243,.15)":o.paymentMethod==="Bitcoin"?"rgba(247,147,26,.15)":"rgba(76,175,130,.15)",color:o.paymentMethod==="PayPal"?"#0070F3":o.paymentMethod==="Bitcoin"?"#F7931A":"#4CAF82",fontSize:10}}>{o.paymentMethod==="PayPal"?"🅿️":o.paymentMethod==="Bitcoin"?"₿":"📱"} {o.paymentMethod}</span>:<span style={{color:"var(--text3)",fontSize:11}}>—</span>}</td>
+        <td style={{maxWidth:120}}>
+          {o.txnId
+            ? <span className="mono" style={{fontSize:10,color:"var(--green)",wordBreak:"break-all"}} title={o.txnId}>✅ {o.txnId.length>12?o.txnId.slice(0,12)+"…":o.txnId}</span>
+            : <span style={{fontSize:11,color:"#e05c4b"}}>⚠️ No TXN</span>}
+        </td>
         <td style={{color:"var(--text3)"}}>{o.date}</td>
         <td><SBadge s={o.status}/></td>
         <td><select onChange={e=>upd(o.id,e.target.value)} value={o.status} style={{width:"auto",fontSize:11,padding:"4px 8px",borderRadius:6,background:"var(--surface2)",border:"1px solid var(--border)",color:"var(--text)"}}><option>Pending</option><option>Completed</option><option>Delivered</option><option>Processing</option><option>Refunded</option></select></td>
