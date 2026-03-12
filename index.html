@@ -575,10 +575,16 @@ const CheckoutPage = ({ cart, setCart, setPage }) => {
   const [name1, setName1] = useState("");
   const [name2, setName2] = useState("");
   const [email, setEmail] = useState("");
+  const [formErr, setFormErr] = useState("");
   const total = cart.reduce((s,b)=>s+b.price,0);
   const discount = couponApplied?total*0.2:0;
   const final = total-discount;
-  const handlePayPal = () => { saveOrderToAdmin(cart,name1,name2,email,"paypal",final); window.open(`${PAYMENT_INFO.paypal_link}/${final.toFixed(2)}`,"_blank"); setStep(2); };
+  const validate = () => {
+    if(!name1.trim()){setFormErr("⚠️ Please enter your First Name.");return false;}
+    if(!email.trim()||!email.includes("@")){setFormErr("⚠️ Please enter a valid Email Address.");return false;}
+    setFormErr("");return true;
+  };
+  const handlePayPal = () => { if(!validate())return; saveOrderToAdmin(cart,name1,name2,email,"paypal",final); window.open(`${PAYMENT_INFO.paypal_link}/${final.toFixed(2)}`,"_blank"); setStep(2); };
   if(step===2) return <ThankYouPage setPage={setPage} books={cart}/>;
   return (
     <div style={{maxWidth:1100,margin:"0 auto",padding:"40px 24px"}}>
@@ -587,9 +593,14 @@ const CheckoutPage = ({ cart, setCart, setPage }) => {
       <div style={{display:"grid",gridTemplateColumns:"1fr 420px",gap:32}} className="checkout-grid">
         <div>
           <div className="card" style={{padding:28,marginBottom:20}}>
-            <h3 style={{fontWeight:700,marginBottom:20,display:"flex",gap:8,alignItems:"center"}}><span style={{width:28,height:28,background:"var(--gold)",borderRadius:"50%",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"#0a0807",fontWeight:700}}>1</span> Contact Info</h3>
-            <div className="grid-2"><div><label>First Name</label><input placeholder="John" value={name1} onChange={e=>setName1(e.target.value)}/></div><div><label>Last Name</label><input placeholder="Doe" value={name2} onChange={e=>setName2(e.target.value)}/></div></div>
-            <div style={{marginTop:12}}><label>Email Address</label><input type="email" placeholder="john@example.com" value={email} onChange={e=>setEmail(e.target.value)}/></div>
+            <h3 style={{fontWeight:700,marginBottom:20,display:"flex",gap:8,alignItems:"center"}}><span style={{width:28,height:28,background:"var(--gold)",borderRadius:"50%",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"#0a0807",fontWeight:700}}>1</span> Contact Info <span style={{fontSize:12,color:"var(--red)",fontWeight:400,marginLeft:4}}>* Required</span></h3>
+            {formErr&&<div style={{background:"rgba(224,92,75,.1)",border:"1px solid rgba(224,92,75,.3)",borderRadius:8,padding:"10px 14px",fontSize:13,color:"#e05c4b",marginBottom:14}}>⚠️ {formErr}</div>}
+            <div className="grid-2">
+              <div><label>First Name <span style={{color:"var(--red)"}}>*</span></label><input placeholder="John" value={name1} onChange={e=>{setName1(e.target.value);setFormErr("");}} style={{border:formErr&&!name1.trim()?"1px solid #e05c4b":""}}/></div>
+              <div><label>Last Name</label><input placeholder="Doe" value={name2} onChange={e=>setName2(e.target.value)}/></div>
+            </div>
+            <div style={{marginTop:12}}><label>Email Address <span style={{color:"var(--red)"}}>*</span></label><input type="email" placeholder="john@example.com" value={email} onChange={e=>{setEmail(e.target.value);setFormErr("");}} style={{border:formErr&&(!email.trim()||!email.includes("@"))?"1px solid #e05c4b":""}}/></div>
+            <div style={{marginTop:8,fontSize:12,color:"var(--text3)"}}>📧 Required — we will send your eBook download link to this email</div>
           </div>
           <div className="card" style={{padding:28}}>
             <h3 style={{fontWeight:700,marginBottom:20,display:"flex",gap:8,alignItems:"center"}}><span style={{width:28,height:28,background:"var(--gold)",borderRadius:"50%",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"#0a0807",fontWeight:700}}>2</span> Payment Method</h3>
@@ -608,10 +619,10 @@ const CheckoutPage = ({ cart, setCart, setPage }) => {
                     <span style={{color:"var(--text3)"}}>PayPal Email: </span>
                     <span style={{fontWeight:600,color:"var(--gold)"}}>{PAYMENT_INFO.paypal_email}</span>
                   </div>
-                  <div style={{fontSize:12,color:"var(--text3)"}}>💡 "Pay Now" click karne par aap PayPal pe redirect ho jayenge</div>
+                  <div style={{fontSize:12,color:"var(--text3)"}}>💡 Click "Pay Now" — you will be securely redirected to PayPal to complete your payment</div>
                 </div>
                 <a href={`${PAYMENT_INFO.paypal_link}/${final.toFixed(2)}`} target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",display:"block"}}>
-                  <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15,borderRadius:10}} onClick={()=>setTimeout(()=>setStep(2),1500)}>
+                  <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15,borderRadius:10}} onClick={()=>{if(!validate())return;setTimeout(()=>setStep(2),1500);}}>  
                     🅿️ Pay ${final.toFixed(2)} via PayPal →
                   </button>
                 </a>
@@ -623,18 +634,18 @@ const CheckoutPage = ({ cart, setCart, setPage }) => {
                 <div style={{background:"rgba(76,175,130,0.08)",border:"1px solid rgba(76,175,130,0.25)",borderRadius:12,padding:20,marginBottom:16}}>
                   <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
                     <div style={{fontSize:28}}>📱</div>
-                    <div><div style={{fontWeight:700,fontSize:15}}>Pay via UPI</div><div style={{fontSize:12,color:"var(--text2)"}}>GPay, PhonePe, Paytm etc.</div></div>
+                    <div><div style={{fontWeight:700,fontSize:15}}>Pay via UPI</div><div style={{fontSize:12,color:"var(--text2)"}}>Google Pay, PhonePe, Any UPI App</div></div>
                   </div>
                   <div style={{background:"var(--surface2)",borderRadius:8,padding:"12px 14px",marginBottom:8}}>
                     <div style={{fontSize:12,color:"var(--text3)",marginBottom:4}}>UPI ID:</div>
                     <div style={{fontFamily:"DM Mono",fontSize:18,fontWeight:700,color:"var(--gold)",letterSpacing:"0.05em"}}>{PAYMENT_INFO.upi}</div>
                   </div>
-                  <div style={{fontSize:12,color:"var(--text3)"}}>💡 Apni UPI app mein yeh ID copy karke <strong style={{color:"var(--text)"}}>${final.toFixed(2)}</strong> bhejo</div>
+                  <div style={{fontSize:12,color:"var(--text3)"}}>💡 Open your UPI app, paste this ID and send exactly <strong style={{color:"var(--text)"}}>${final.toFixed(2)}</strong> to complete payment</div>
                 </div>
-                <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15,borderRadius:10}} onClick={()=>{saveOrderToAdmin(cart,name1,name2,email,"upi",final);setStep(2);}}>
-                  ✅ Maine UPI se Payment Kar Di
+                <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15,borderRadius:10}} onClick={()=>{if(!validate())return;saveOrderToAdmin(cart,name1,name2,email,"upi",final);setStep(2);}}>  
+                  ✅ I Have Completed UPI Payment
                 </button>
-                <div style={{textAlign:"center",fontSize:12,color:"var(--text3)",marginTop:8}}>Payment ke baad apna email zaroor likhein taake aapko eBook mil sake</div>
+                <div style={{textAlign:"center",fontSize:12,color:"var(--text3)",marginTop:8}}>Please ensure your email is filled above so we can deliver your eBook</div>
               </div>
             )}
 
@@ -648,14 +659,14 @@ const CheckoutPage = ({ cart, setCart, setPage }) => {
                   <div style={{background:"var(--surface2)",borderRadius:8,padding:"12px 14px",marginBottom:8}}>
                     <div style={{fontSize:12,color:"var(--text3)",marginBottom:6}}>BTC Wallet Address:</div>
                     <div style={{fontFamily:"DM Mono",fontSize:12,fontWeight:600,color:"var(--gold)",wordBreak:"break-all",lineHeight:1.6,padding:"8px 10px",background:"rgba(201,168,76,0.06)",borderRadius:6,border:"1px solid rgba(201,168,76,0.2)"}}>{PAYMENT_INFO.btc}</div>
-                    <button onClick={()=>{navigator.clipboard.writeText(PAYMENT_INFO.btc);}} style={{marginTop:8,width:"100%",background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.3)",color:"var(--gold)",borderRadius:6,padding:"7px",fontSize:12,cursor:"pointer",fontFamily:"DM Sans"}}>📋 Address Copy Karo</button>
+                    <button onClick={()=>{navigator.clipboard.writeText(PAYMENT_INFO.btc);}} style={{marginTop:8,width:"100%",background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.3)",color:"var(--gold)",borderRadius:6,padding:"7px",fontSize:12,cursor:"pointer",fontFamily:"DM Sans"}}>📋 Copy Address</button>
                   </div>
-                  <div style={{fontSize:12,color:"var(--text3)"}}>💡 Apne wallet se exact <strong style={{color:"var(--text)"}}>${final.toFixed(2)}</strong> ke equivalent BTC bhejo</div>
+                  <div style={{fontSize:12,color:"var(--text3)"}}>💡 Send the equivalent of <strong style={{color:"var(--text)"}}>${final.toFixed(2)}</strong> in BTC to the address above</div>
                 </div>
-                <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15,borderRadius:10}} onClick={()=>{saveOrderToAdmin(cart,name1,name2,email,"crypto",final);setStep(2);}}>
-                  ✅ Maine BTC se Payment Kar Di
+                <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15,borderRadius:10}} onClick={()=>{if(!validate())return;saveOrderToAdmin(cart,name1,name2,email,"crypto",final);setStep(2);}}>  
+                  ✅ I Have Sent Bitcoin Payment
                 </button>
-                <div style={{textAlign:"center",fontSize:12,color:"var(--text3)",marginTop:8}}>Transaction ke baad apna email zaroor likhein</div>
+                <div style={{textAlign:"center",fontSize:12,color:"var(--text3)",marginTop:8}}>Please ensure your email is filled above so we can deliver your eBook</div>
               </div>
             )}
           </div>
@@ -676,7 +687,7 @@ const CheckoutPage = ({ cart, setCart, setPage }) => {
                     </div>
                   ))}
                 </div>
-                <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15,marginTop:20}} onClick={()=>{saveOrderToAdmin(cart,name1,name2,email,method,final);setStep(2);}}>🔒 Confirm Order — ${final.toFixed(2)}</button>
+                <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15,marginTop:20}} onClick={()=>{if(!validate())return;saveOrderToAdmin(cart,name1,name2,email,method,final);setStep(2);}}>🔒 Confirm Order — ${final.toFixed(2)}</button>
                 <div style={{textAlign:"center",marginTop:12,fontSize:12,color:"var(--text3)"}}>🔒 SSL Encrypted &nbsp;•&nbsp; Instant Delivery &nbsp;•&nbsp; 30-Day Refund</div>
               </>
             )}
