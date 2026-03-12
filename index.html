@@ -497,14 +497,49 @@ const ThankYouPage = ({ setPage, books }) => (
   </div>
 );
 
+
+const saveOrderToAdmin = (cart, name1, name2, email, method, finalAmt) => {
+  try {
+    const existing = JSON.parse(localStorage.getItem('dbs_orders') || '[]');
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    const orderId = '#ORD-' + (Date.now()+'').slice(-6);
+    const methodLabel = method==='paypal'?'PayPal':method==='upi'?'UPI':'Bitcoin';
+    const fullName = (name1+' '+name2).trim() || 'Guest';
+    const bookTitles = cart.map(b=>b.title).join(', ');
+    const newOrder = {
+      id: orderId,
+      customer: fullName,
+      email: email || 'N/A',
+      book: bookTitles,
+      amount: parseFloat(finalAmt),
+      date: dateStr,
+      status: 'Pending',
+      paymentMethod: methodLabel,
+      books: cart.length,
+    };
+    const updated = [newOrder, ...existing];
+    localStorage.setItem('dbs_orders', JSON.stringify(updated));
+  } catch(e) { console.error('Order save failed:', e); }
+};
+const PAYMENT_INFO = {
+  paypal_link: "https://paypal.me/HaidarAli441",
+  paypal_email: "alihaidar9007@gmail.com",
+  btc: "1Gi8CV7iUvbkPeZ1LX3TzEZY3AZv2MBeaM",
+  upi: "dcsystem77@axl",
+};
 const CheckoutPage = ({ cart, setCart, setPage }) => {
-  const [method, setMethod] = useState("stripe");
+  const [method, setMethod] = useState("paypal");
   const [coupon, setCoupon] = useState("");
   const [couponApplied, setCouponApplied] = useState(false);
   const [step, setStep] = useState(1);
+  const [name1, setName1] = useState("");
+  const [name2, setName2] = useState("");
+  const [email, setEmail] = useState("");
   const total = cart.reduce((s,b)=>s+b.price,0);
   const discount = couponApplied?total*0.2:0;
   const final = total-discount;
+  const handlePayPal = () => { saveOrderToAdmin(cart,name1,name2,email,"paypal",final); window.open(`${PAYMENT_INFO.paypal_link}/${final.toFixed(2)}`,"_blank"); setStep(2); };
   if(step===2) return <ThankYouPage setPage={setPage} books={cart}/>;
   return (
     <div style={{maxWidth:1100,margin:"0 auto",padding:"40px 24px"}}>
@@ -514,18 +549,76 @@ const CheckoutPage = ({ cart, setCart, setPage }) => {
         <div>
           <div className="card" style={{padding:28,marginBottom:20}}>
             <h3 style={{fontWeight:700,marginBottom:20,display:"flex",gap:8,alignItems:"center"}}><span style={{width:28,height:28,background:"var(--gold)",borderRadius:"50%",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"#0a0807",fontWeight:700}}>1</span> Contact Info</h3>
-            <div className="grid-2"><div><label>First Name</label><input placeholder="John"/></div><div><label>Last Name</label><input placeholder="Doe"/></div></div>
-            <div style={{marginTop:12}}><label>Email Address</label><input type="email" placeholder="john@example.com"/></div>
+            <div className="grid-2"><div><label>First Name</label><input placeholder="John" value={name1} onChange={e=>setName1(e.target.value)}/></div><div><label>Last Name</label><input placeholder="Doe" value={name2} onChange={e=>setName2(e.target.value)}/></div></div>
+            <div style={{marginTop:12}}><label>Email Address</label><input type="email" placeholder="john@example.com" value={email} onChange={e=>setEmail(e.target.value)}/></div>
           </div>
           <div className="card" style={{padding:28}}>
             <h3 style={{fontWeight:700,marginBottom:20,display:"flex",gap:8,alignItems:"center"}}><span style={{width:28,height:28,background:"var(--gold)",borderRadius:"50%",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:13,color:"#0a0807",fontWeight:700}}>2</span> Payment Method</h3>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20}} className="payment-grid">
-              {[["stripe","💳 Stripe"],["paypal","🅿️ PayPal"],["upi","📱 UPI"],["crypto","₿ Crypto"]].map(([v,l])=><button key={v} onClick={()=>setMethod(v)} style={{padding:"12px 8px",borderRadius:10,border:`2px solid ${method===v?"var(--gold)":"var(--border)"}`,background:method===v?"rgba(201,168,76,0.12)":"var(--surface2)",color:method===v?"var(--gold)":"var(--text2)",cursor:"pointer",fontSize:12,fontFamily:"DM Sans",fontWeight:method===v?600:400}}>{l}</button>)}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:24}} className="payment-grid">
+              {[["paypal","🅿️ PayPal"],["upi","📱 UPI"],["crypto","₿ Bitcoin"]].map(([v,l])=><button key={v} onClick={()=>setMethod(v)} style={{padding:"14px 8px",borderRadius:10,border:`2px solid ${method===v?"var(--gold)":"var(--border)"}`,background:method===v?"rgba(201,168,76,0.12)":"var(--surface2)",color:method===v?"var(--gold)":"var(--text2)",cursor:"pointer",fontSize:13,fontFamily:"DM Sans",fontWeight:method===v?600:400,transition:"all .2s"}}>{l}</button>)}
             </div>
-            {method==="stripe"&&<div><div style={{marginBottom:12}}><label>Card Number</label><input placeholder="1234 5678 9012 3456"/></div><div className="grid-2"><div><label>Expiry</label><input placeholder="MM/YY"/></div><div><label>CVV</label><input placeholder="123"/></div></div></div>}
-            {method==="paypal"&&<div style={{textAlign:"center",padding:"24px",background:"var(--surface2)",borderRadius:10,color:"var(--text2)",fontSize:14}}>You'll be redirected to PayPal to complete your payment securely.</div>}
-            {method==="upi"&&<div><label>UPI ID</label><input placeholder="yourname@upi"/></div>}
-            {method==="crypto"&&<div style={{padding:16,background:"var(--surface2)",borderRadius:10,fontSize:13,color:"var(--text2)"}}><div style={{marginBottom:8,fontWeight:600}}>Send to BTC Address:</div><div className="mono" style={{wordBreak:"break-all",color:"var(--gold)"}}>bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh</div></div>}
+
+            {method==="paypal"&&(
+              <div>
+                <div style={{background:"rgba(0,112,243,0.08)",border:"1px solid rgba(0,112,243,0.25)",borderRadius:12,padding:20,marginBottom:16}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+                    <div style={{fontSize:28}}>🅿️</div>
+                    <div><div style={{fontWeight:700,fontSize:15}}>Pay via PayPal</div><div style={{fontSize:12,color:"var(--text2)"}}>Safe & Secure — Worldwide</div></div>
+                  </div>
+                  <div style={{background:"var(--surface2)",borderRadius:8,padding:"10px 14px",fontSize:13,marginBottom:8}}>
+                    <span style={{color:"var(--text3)"}}>PayPal Email: </span>
+                    <span style={{fontWeight:600,color:"var(--gold)"}}>{PAYMENT_INFO.paypal_email}</span>
+                  </div>
+                  <div style={{fontSize:12,color:"var(--text3)"}}>💡 "Pay Now" click karne par aap PayPal pe redirect ho jayenge</div>
+                </div>
+                <a href={`${PAYMENT_INFO.paypal_link}/${final.toFixed(2)}`} target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",display:"block"}}>
+                  <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15,borderRadius:10}} onClick={()=>setTimeout(()=>setStep(2),1500)}>
+                    🅿️ Pay ${final.toFixed(2)} via PayPal →
+                  </button>
+                </a>
+              </div>
+            )}
+
+            {method==="upi"&&(
+              <div>
+                <div style={{background:"rgba(76,175,130,0.08)",border:"1px solid rgba(76,175,130,0.25)",borderRadius:12,padding:20,marginBottom:16}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+                    <div style={{fontSize:28}}>📱</div>
+                    <div><div style={{fontWeight:700,fontSize:15}}>Pay via UPI</div><div style={{fontSize:12,color:"var(--text2)"}}>GPay, PhonePe, Paytm etc.</div></div>
+                  </div>
+                  <div style={{background:"var(--surface2)",borderRadius:8,padding:"12px 14px",marginBottom:8}}>
+                    <div style={{fontSize:12,color:"var(--text3)",marginBottom:4}}>UPI ID:</div>
+                    <div style={{fontFamily:"DM Mono",fontSize:18,fontWeight:700,color:"var(--gold)",letterSpacing:"0.05em"}}>{PAYMENT_INFO.upi}</div>
+                  </div>
+                  <div style={{fontSize:12,color:"var(--text3)"}}>💡 Apni UPI app mein yeh ID copy karke <strong style={{color:"var(--text)"}}>${final.toFixed(2)}</strong> bhejo</div>
+                </div>
+                <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15,borderRadius:10}} onClick={()=>{saveOrderToAdmin(cart,name1,name2,email,"upi",final);setStep(2);}}>
+                  ✅ Maine UPI se Payment Kar Di
+                </button>
+                <div style={{textAlign:"center",fontSize:12,color:"var(--text3)",marginTop:8}}>Payment ke baad apna email zaroor likhein taake aapko eBook mil sake</div>
+              </div>
+            )}
+
+            {method==="crypto"&&(
+              <div>
+                <div style={{background:"rgba(247,147,26,0.08)",border:"1px solid rgba(247,147,26,0.25)",borderRadius:12,padding:20,marginBottom:16}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+                    <div style={{fontSize:28}}>₿</div>
+                    <div><div style={{fontWeight:700,fontSize:15}}>Pay via Bitcoin (BTC)</div><div style={{fontSize:12,color:"var(--text2)"}}>Any BTC wallet — Worldwide</div></div>
+                  </div>
+                  <div style={{background:"var(--surface2)",borderRadius:8,padding:"12px 14px",marginBottom:8}}>
+                    <div style={{fontSize:12,color:"var(--text3)",marginBottom:6}}>BTC Wallet Address:</div>
+                    <div style={{fontFamily:"DM Mono",fontSize:12,fontWeight:600,color:"var(--gold)",wordBreak:"break-all",lineHeight:1.6,padding:"8px 10px",background:"rgba(201,168,76,0.06)",borderRadius:6,border:"1px solid rgba(201,168,76,0.2)"}}>{PAYMENT_INFO.btc}</div>
+                    <button onClick={()=>{navigator.clipboard.writeText(PAYMENT_INFO.btc);}} style={{marginTop:8,width:"100%",background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.3)",color:"var(--gold)",borderRadius:6,padding:"7px",fontSize:12,cursor:"pointer",fontFamily:"DM Sans"}}>📋 Address Copy Karo</button>
+                  </div>
+                  <div style={{fontSize:12,color:"var(--text3)"}}>💡 Apne wallet se exact <strong style={{color:"var(--text)"}}>${final.toFixed(2)}</strong> ke equivalent BTC bhejo</div>
+                </div>
+                <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15,borderRadius:10}} onClick={()=>{saveOrderToAdmin(cart,name1,name2,email,"crypto",final);setStep(2);}}>
+                  ✅ Maine BTC se Payment Kar Di
+                </button>
+                <div style={{textAlign:"center",fontSize:12,color:"var(--text3)",marginTop:8}}>Transaction ke baad apna email zaroor likhein</div>
+              </div>
+            )}
           </div>
         </div>
         <div>
@@ -544,7 +637,7 @@ const CheckoutPage = ({ cart, setCart, setPage }) => {
                     </div>
                   ))}
                 </div>
-                <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15,marginTop:20}} onClick={()=>setStep(2)}>🔒 Complete Purchase — ${final.toFixed(2)}</button>
+                <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15,marginTop:20}} onClick={()=>{saveOrderToAdmin(cart,name1,name2,email,method,final);setStep(2);}}>🔒 Confirm Order — ${final.toFixed(2)}</button>
                 <div style={{textAlign:"center",marginTop:12,fontSize:12,color:"var(--text3)"}}>🔒 SSL Encrypted &nbsp;•&nbsp; Instant Delivery &nbsp;•&nbsp; 30-Day Refund</div>
               </>
             )}
