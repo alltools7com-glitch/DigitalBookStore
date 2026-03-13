@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>⚙️ Admin — DigitalBookStore</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23C9A84C'/><text y='72' x='50' text-anchor='middle' font-size='62'>⚙️</text></svg>"/>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
@@ -235,12 +235,12 @@ const Dashboard = () => {
 const BooksTab = () => {
   const [books,setBooks]=useState(()=>{try{const s=localStorage.getItem("dbs_books");return s?JSON.parse(s):INIT_BOOKS;}catch{return INIT_BOOKS;}});
   useEffect(()=>{try{localStorage.setItem("dbs_books",JSON.stringify(books));}catch{}},[books]);
-  const [search,setSearch]=useState(""),cat=useState("All"),modal=useState(null),form=useState({title:"",author:"",price:"",category:"Business",status:"Active"}),toast=useState(""),del2=useState(null);
+  const [search,setSearch]=useState(""),cat=useState("All"),modal=useState(null),form=useState({title:"",author:"",price:"",originalPrice:"",category:"Business",status:"Active",description:"",pages:""}),toast=useState(""),del2=useState(null);
   const [ct,setCt]=cat;const [mo,setMo]=modal;const [fm,setFm]=form;const [ts,setTs]=toast;const [dc,setDc]=del2;
   const filtered=books.filter(b=>(ct==="All"||b.category===ct)&&(b.title.toLowerCase().includes(search.toLowerCase())||b.author.toLowerCase().includes(search.toLowerCase())));
   const openAdd=()=>{setFm({title:"",author:"",price:"",category:"Business",status:"Active"});setMo("add");};
   const openEdit=b=>{setFm({...b,price:String(b.price)});setMo(b);};
-  const save=()=>{if(!fm.title||!fm.author||!fm.price)return;if(mo==="add"){setBooks([...books,{...fm,id:Date.now(),price:parseFloat(fm.price),sales:0,rating:5.0}]);setTs("Book added!");}else{setBooks(books.map(b=>b.id===fm.id?{...b,...fm,price:parseFloat(fm.price)}:b));setTs("Book updated!");}setMo(null);};
+  const save=()=>{if(!fm.title||!fm.author||!fm.price)return;if(mo==="add"){setBooks([...books,{...fm,id:Date.now(),price:parseFloat(fm.price)||9.99,originalPrice:parseFloat(fm.originalPrice)||parseFloat((fm.price*1.8).toFixed(2)),pages:parseInt(fm.pages)||220,sales:0,rating:5.0}]);setTs("Book added!");}else{setBooks(books.map(b=>b.id===fm.id?{...b,...fm,price:parseFloat(fm.price)}:b));setTs("Book updated!");}setMo(null);};
   const del=id=>{setBooks(books.filter(b=>b.id!==id));setDc(null);setTs("Book deleted.");};
   const tog=id=>setBooks(books.map(b=>b.id===id?{...b,status:b.status==="Active"?"Inactive":"Active"}:b));
   return <div className="fade-in">
@@ -283,6 +283,11 @@ const BooksTab = () => {
           <div><label>Price *</label><input placeholder="19.99" value={fm.price} onChange={e=>setFm({...fm,price:e.target.value})}/></div>
           <div><label>Category</label><select value={fm.category} onChange={e=>setFm({...fm,category:e.target.value})}>{ALL_CATS.map(c=><option key={c}>{c}</option>)}</select></div>
         </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div><label>Original Price</label><input placeholder="39.99" value={fm.originalPrice} onChange={e=>setFm({...fm,originalPrice:e.target.value})}/></div>
+          <div><label>Pages</label><input placeholder="220" value={fm.pages} onChange={e=>setFm({...fm,pages:e.target.value})}/></div>
+        </div>
+        <div><label>Description</label><textarea placeholder="Short book description..." value={fm.description} onChange={e=>setFm({...fm,description:e.target.value})} style={{resize:"vertical",minHeight:70}}/></div>
         <div><label>Status</label><select value={fm.status} onChange={e=>setFm({...fm,status:e.target.value})}><option>Active</option><option>Inactive</option></select></div>
       </div>
       <div style={{display:"flex",gap:10,marginTop:22}}>
