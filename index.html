@@ -247,6 +247,11 @@ const GlobalStyles = ({ dark }) => (
     .nav-cart-badge{position:absolute;top:-6px;right:-6px;background:var(--gold);color:#0a0807;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg);}
     .nav-shop-btn{background:linear-gradient(135deg,#C9A84C,#e8c96a);color:#0a0807;font-weight:700;font-size:13px;padding:9px 20px;border-radius:10px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .18s;white-space:nowrap;}
     .nav-shop-btn:hover{filter:brightness(1.08);transform:translateY(-1px);box-shadow:0 6px 20px rgba(201,168,76,.35);}
+    @keyframes shimmer{0%{transform:translateX(-100%) skewX(-15deg)}100%{transform:translateX(250%) skewX(-15deg)}}
+    @keyframes ctaPulse{0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,.5),0 4px 15px rgba(201,168,76,.3)}50%{box-shadow:0 0 0 8px rgba(201,168,76,0),0 4px 20px rgba(201,168,76,.5)}}
+    .nav-cta-btn{position:relative;overflow:hidden;background:linear-gradient(135deg,#C9A84C 0%,#f0d878 50%,#C9A84C 100%);background-size:200% auto;color:#0a0807;font-weight:800;font-size:13.5px;padding:10px 22px;border-radius:10px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;animation:ctaPulse 2.5s infinite;letter-spacing:0.01em;}
+    .nav-cta-btn:hover{transform:translateY(-2px) scale(1.04);filter:brightness(1.1);}
+    .nav-cta-shimmer{position:absolute;top:0;left:0;width:40%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.45),transparent);animation:shimmer 2.5s infinite;}
     .nav-divider{width:1px;height:22px;background:var(--border);margin:0 2px;}
     /* ===== MOBILE RESPONSIVE ===== */
     @media(max-width:768px){
@@ -343,28 +348,67 @@ const BookCover = ({ book, size="md" }) => {
 const Nav = ({ page, setPage, dark, setDark, cart, user, onLogout }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenu, setUserMenu] = useState(false);
-  const NAV_LINKS = [["home","Home"],["store","Store"],["blog","Blog"],["faq","FAQ"],["contact","Contact"]];
-  return (
-    <nav style={{position:"sticky",top:0,zIndex:1000,background:dark?"rgba(10,10,11,0.92)":"rgba(250,249,247,0.92)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",borderBottom:"1px solid var(--border)",boxShadow:dark?"0 1px 0 rgba(255,255,255,0.04)":"0 1px 0 rgba(0,0,0,0.06)"}}>
-      <div style={{maxWidth:1280,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:66,padding:"0 20px",gap:16}}>
+  const [catMenu, setCatMenu] = useState(false);
 
-        {/* Logo */}
-        <div style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",flexShrink:0}} onClick={()=>{setPage("home");setMenuOpen(false);}}>
-          <div style={{width:34,height:34,background:"linear-gradient(135deg,#C9A84C,#e8c96a)",borderRadius:9,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,boxShadow:"0 4px 12px rgba(201,168,76,0.3)",animation:"float 4s ease-in-out infinite"}}>📚</div>
+  const NAV_LINKS = [["home","Home"],["store","Store"],["blog","Blog"],["faq","FAQ"],["contact","Contact"]];
+  const CATEGORIES = [
+    {icon:"🤝",label:"Business",color:"#C9A84C"},
+    {icon:"🤖",label:"AI Tools",color:"#7B68EE"},
+    {icon:"🌐",label:"Website",color:"#4285F4"},
+    {icon:"💪",label:"Health & Fitness",color:"#4CAF82"},
+    {icon:"⚖️",label:"Weight Loss",color:"#FF6B6B"},
+    {icon:"🧘",label:"Mind & Wellness",color:"#FF9F43"},
+    {icon:"💰",label:"Finance",color:"#2ECC71"},
+    {icon:"🎨",label:"Design",color:"#E056CD"},
+  ];
+
+  return (
+    <nav style={{position:"sticky",top:0,zIndex:1000,background:dark?"rgba(10,10,11,0.95)":"rgba(250,249,247,0.95)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",borderBottom:"1px solid var(--border)",boxShadow:dark?"0 2px 20px rgba(0,0,0,0.3)":"0 2px 20px rgba(0,0,0,0.08)"}}>
+      <div style={{maxWidth:1400,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",height:70,padding:"0 24px",gap:16}}>
+
+        {/* ── Logo — bigger ── */}
+        <div style={{display:"flex",alignItems:"center",gap:12,cursor:"pointer",flexShrink:0}} onClick={()=>{setPage("home");setMenuOpen(false);}}>
+          <div style={{width:42,height:42,background:"linear-gradient(135deg,#C9A84C,#e8c96a)",borderRadius:11,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,boxShadow:"0 4px 16px rgba(201,168,76,0.4)",animation:"float 4s ease-in-out infinite"}}>📚</div>
           <div>
-            <div className="playfair" style={{fontSize:17,fontWeight:700,letterSpacing:"-0.02em",lineHeight:1.1}}>Digital<span style={{color:"var(--gold)"}}>Book</span>Store</div>
-            <div style={{fontSize:9,color:"var(--text3)",fontFamily:"DM Mono",letterSpacing:"0.12em",marginTop:1}}>PREMIUM eBOOKS</div>
+            <div className="playfair" style={{fontSize:22,fontWeight:800,letterSpacing:"-0.03em",lineHeight:1.1}}>Digital<span style={{color:"var(--gold)"}}>Book</span><span style={{color:"var(--text)"}}>Store</span></div>
+            <div style={{fontSize:9,color:"var(--text3)",fontFamily:"DM Mono",letterSpacing:"0.15em",marginTop:2,fontWeight:600}}>PREMIUM eBOOKS • WORLDWIDE</div>
           </div>
         </div>
 
-        {/* Desktop Nav Links */}
+        {/* ── Desktop Nav Links ── */}
         <div className="nav-links" style={{display:"flex",alignItems:"center",gap:2,flex:1,justifyContent:"center"}}>
           {NAV_LINKS.map(([p,l])=>(
             <button key={p} onClick={()=>setPage(p)} className={"nav-link"+(page===p?" active":"")}>{l}</button>
           ))}
+
+          {/* Categories Mega Dropdown */}
+          <div style={{position:"relative"}} onMouseEnter={()=>setCatMenu(true)} onMouseLeave={()=>setCatMenu(false)}>
+            <button className={"nav-link"} style={{display:"flex",alignItems:"center",gap:4}}>
+              Categories <span style={{fontSize:10,opacity:0.6,transition:"transform .2s",transform:catMenu?"rotate(180deg)":"none",display:"inline-block"}}>▼</span>
+            </button>
+            {catMenu&&(
+              <div style={{position:"absolute",top:"calc(100% + 8px)",left:"50%",transform:"translateX(-50%)",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:16,padding:16,width:380,boxShadow:"0 20px 60px rgba(0,0,0,0.25)",zIndex:999,animation:"fadeIn .15s ease"}}>
+                <div style={{fontSize:10,fontWeight:700,color:"var(--text3)",letterSpacing:"0.1em",marginBottom:12,textTransform:"uppercase"}}>Browse by Category</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+                  {CATEGORIES.map(({icon,label,color})=>(
+                    <button key={label} onClick={()=>{setPage("store");setCatMenu(false);}}
+                      style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:10,cursor:"pointer",textAlign:"left",transition:"all .15s",fontFamily:"DM Sans"}}
+                      onMouseEnter={e=>{e.currentTarget.style.background=`${color}18`;e.currentTarget.style.borderColor=`${color}55`;e.currentTarget.style.transform="translateX(3px)";}}
+                      onMouseLeave={e=>{e.currentTarget.style.background="var(--surface2)";e.currentTarget.style.borderColor="var(--border)";e.currentTarget.style.transform="";}}>
+                      <span style={{fontSize:18,flexShrink:0}}>{icon}</span>
+                      <span style={{fontSize:13,fontWeight:500,color:"var(--text)"}}>{label}</span>
+                    </button>
+                  ))}
+                </div>
+                <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid var(--border)",textAlign:"center"}}>
+                  <button onClick={()=>{setPage("store");setCatMenu(false);}} className="btn-gold" style={{padding:"9px 28px",fontSize:13,borderRadius:8}}>View All Books →</button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Desktop Right */}
+        {/* ── Desktop Right ── */}
         <div className="nav-desktop-right" style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
           <button onClick={()=>setDark(!dark)} className="nav-icon-btn" title={dark?"Light Mode":"Dark Mode"}>{dark?"☀️":"🌙"}</button>
           <div className="nav-divider"/>
@@ -376,12 +420,12 @@ const Nav = ({ page, setPage, dark, setDark, cart, user, onLogout }) => {
             <button onClick={()=>setUserMenu(m=>!m)} className="nav-icon-btn" title={user?"My Account":"Sign In"}
               style={{display:"flex",alignItems:"center",gap:5,padding:"8px 10px"}}>
               {user
-                ? <><div style={{width:26,height:26,borderRadius:"50%",background:"linear-gradient(135deg,var(--gold),#e8c96a)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#0a0807"}}>{user.name?user.name[0].toUpperCase():"U"}</div><span style={{fontSize:12,fontWeight:600,color:"var(--gold)",maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name}</span></>
+                ? <><div style={{width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,var(--gold),#e8c96a)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#0a0807"}}>{user.name?user.name[0].toUpperCase():"U"}</div><span style={{fontSize:12,fontWeight:600,color:"var(--gold)",maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name}</span></>
                 : <>👤</>
               }
             </button>
             {userMenu&&(
-              <div style={{position:"absolute",right:0,top:"calc(100% + 8px)",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:8,minWidth:160,boxShadow:"var(--shadow-lg)",zIndex:999}} onClick={()=>setUserMenu(false)}>
+              <div style={{position:"absolute",right:0,top:"calc(100% + 8px)",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:8,minWidth:170,boxShadow:"var(--shadow-lg)",zIndex:999}} onClick={()=>setUserMenu(false)}>
                 {user ? <>
                   <div style={{padding:"8px 12px",fontSize:12,color:"var(--text3)",borderBottom:"1px solid var(--border)",marginBottom:4}}>{user.email}</div>
                   <button className="nav-link" style={{width:"100%",textAlign:"left",padding:"9px 12px"}} onClick={()=>setPage("dashboard")}>📚 My Library</button>
@@ -394,7 +438,11 @@ const Nav = ({ page, setPage, dark, setDark, cart, user, onLogout }) => {
             )}
           </div>
           <div className="nav-divider"/>
-          <button onClick={()=>setPage("store")} className="nav-shop-btn">🛍️ Shop Now</button>
+          {/* ── Animated CTA Button ── */}
+          <button onClick={()=>setPage("store")} className="nav-cta-btn">
+            <span className="nav-cta-shimmer"/>
+            🛍️ Shop Now
+          </button>
         </div>
 
         {/* Mobile Right */}
@@ -412,17 +460,29 @@ const Nav = ({ page, setPage, dark, setDark, cart, user, onLogout }) => {
 
       {/* Mobile Dropdown */}
       {menuOpen&&(
-        <div style={{background:dark?"rgba(10,10,11,0.98)":"rgba(250,249,247,0.98)",borderTop:"1px solid var(--border)",padding:"10px 16px 20px",animation:"fadeIn .2s ease"}}>
+        <div style={{background:dark?"rgba(10,10,11,0.98)":"rgba(250,249,247,0.98)",borderTop:"1px solid var(--border)",padding:"12px 16px 20px",animation:"fadeIn .2s ease"}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:10}}>
             {NAV_LINKS.map(([p,l])=>(
               <button key={p} onClick={()=>{setPage(p);setMenuOpen(false);}} style={{background:page===p?"rgba(201,168,76,0.12)":"var(--surface2)",border:page===p?"1px solid rgba(201,168,76,0.3)":"1px solid var(--border)",color:page===p?"var(--gold)":"var(--text)",cursor:"pointer",padding:"11px 14px",borderRadius:10,fontSize:14,fontWeight:page===p?600:400,fontFamily:"DM Sans",textAlign:"left",transition:"all .15s"}}>{l}</button>
             ))}
           </div>
+          {/* Mobile Categories */}
+          <div style={{marginBottom:10}}>
+            <div style={{fontSize:10,fontWeight:700,color:"var(--text3)",letterSpacing:"0.1em",marginBottom:8,textTransform:"uppercase"}}>Categories</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:5}}>
+              {CATEGORIES.map(({icon,label,color})=>(
+                <button key={label} onClick={()=>{setPage("store");setMenuOpen(false);}}
+                  style={{display:"flex",alignItems:"center",gap:7,padding:"8px 10px",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:8,cursor:"pointer",fontFamily:"DM Sans",fontSize:12,color:"var(--text)"}}>
+                  <span>{icon}</span><span>{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
           <div style={{height:1,background:"var(--border)",margin:"10px 0"}}/>
           <div style={{display:"flex",gap:8}}>
             <button onClick={()=>setDark(!dark)} style={{flex:1,background:"var(--surface2)",border:"1px solid var(--border)",color:"var(--text)",cursor:"pointer",padding:"10px",borderRadius:10,fontSize:13,fontFamily:"DM Sans"}}>{dark?"☀️ Light":"🌙 Dark"}</button>
             <button onClick={()=>{setPage(user?"dashboard":"auth");setMenuOpen(false);}} style={{flex:1,background:"var(--surface2)",border:"1px solid var(--border)",color:"var(--text)",cursor:"pointer",padding:"10px",borderRadius:10,fontSize:13,fontFamily:"DM Sans"}}>👤 {user?"Dashboard":"Sign In"}</button>
-            <button onClick={()=>{setPage("store");setMenuOpen(false);}} className="nav-shop-btn" style={{flex:1,borderRadius:10}}>🛍️ Shop</button>
+            <button onClick={()=>{setPage("store");setMenuOpen(false);}} className="nav-cta-btn" style={{flex:1,borderRadius:10,fontSize:12,padding:"10px 12px"}}>🛍️ Shop</button>
           </div>
         </div>
       )}
