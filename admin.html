@@ -237,11 +237,49 @@ const BooksTab = () => {
   useEffect(()=>{try{localStorage.setItem("dbs_books",JSON.stringify(books));}catch{}},[books]);
   const [search,setSearch]=useState(""),cat=useState("All"),modal=useState(null),form=useState({title:"",author:"",price:"",originalPrice:"",category:"Business",status:"Active",description:"",pages:""}),toast=useState(""),del2=useState(null);
   const [ct,setCt]=cat;const [mo,setMo]=modal;const [fm,setFm]=form;const [ts,setTs]=toast;const [dc,setDc]=del2;
+  const [coverPreview,setCoverPreview]=useState(null);
+  const [pdfName,setPdfName]=useState("");
   const filtered=books.filter(b=>(ct==="All"||b.category===ct)&&(b.title.toLowerCase().includes(search.toLowerCase())||b.author.toLowerCase().includes(search.toLowerCase())));
-  const openAdd=()=>{setFm({title:"",author:"",price:"",category:"Business",status:"Active"});setMo("add");};
-  const openEdit=b=>{setFm({...b,price:String(b.price)});setMo(b);};
-  const save=()=>{if(!fm.title||!fm.author||!fm.price)return;if(mo==="add"){setBooks([...books,{...fm,id:Date.now(),price:parseFloat(fm.price)||9.99,originalPrice:parseFloat(fm.originalPrice)||parseFloat((fm.price*1.8).toFixed(2)),pages:parseInt(fm.pages)||220,sales:0,rating:5.0}]);setTs("Book added!");}else{setBooks(books.map(b=>b.id===fm.id?{...b,...fm,price:parseFloat(fm.price)}:b));setTs("Book updated!");}setMo(null);};
-  const del=id=>{setBooks(books.filter(b=>b.id!==id));setDc(null);setTs("Book deleted.");};
+  const openAdd=()=>{setFm({title:"",author:"",price:"",originalPrice:"",category:"Business",status:"Active",description:"",pages:""});setCoverPreview(null);setPdfName("");setMo("add");};
+  const openEdit=b=>{
+    setFm({...b,price:String(b.price),originalPrice:String(b.originalPrice||""),pages:String(b.pages||""),description:b.description||""});
+    try{const img=localStorage.getItem("dbs_cover_"+b.id);setCoverPreview(img||null);}catch{setCoverPreview(null);}
+    try{const pn=localStorage.getItem("dbs_pdfname_"+b.id);setPdfName(pn||"");}catch{setPdfName("");}
+    setMo(b);
+  };
+  const handleCoverUpload=e=>{
+    const file=e.target.files[0];
+    if(!file)return;
+    if(file.size>2*1024*1024){alert("Image bahut bari hai! Max 2MB allowed.");return;}
+    const reader=new FileReader();
+    reader.onload=ev=>{setCoverPreview(ev.target.result);setFm(f=>({...f,_coverData:ev.target.result}));};
+    reader.readAsDataURL(file);
+  };
+  const handlePdfUpload=e=>{
+    const file=e.target.files[0];
+    if(!file)return;
+    if(file.size>10*1024*1024){alert("PDF bahut bara hai! Max 10MB allowed.");return;}
+    const reader=new FileReader();
+    reader.onload=ev=>{setFm(f=>({...f,_pdfData:ev.target.result,_pdfName:file.name}));setPdfName(file.name);};
+    reader.readAsDataURL(file);
+  };
+  const save=()=>{
+    if(!fm.title||!fm.author||!fm.price)return;
+    const bookId=mo==="add"?Date.now():fm.id;
+    // Save cover image to localStorage
+    if(fm._coverData){try{localStorage.setItem("dbs_cover_"+bookId,fm._coverData);}catch(e){alert("Image save nahi hui — storage full ho sakti hai");}}
+    // Save PDF to localStorage
+    if(fm._pdfData){try{localStorage.setItem("dbs_pdf_"+bookId,fm._pdfData);localStorage.setItem("dbs_pdfname_"+bookId,fm._pdfName||"book.pdf");}catch(e){alert("PDF save nahi hua — storage full ho sakti hai (PDF ka size zyada hai)");}}
+    const cleanFm={...fm};delete cleanFm._coverData;delete cleanFm._pdfData;delete cleanFm._pdfName;
+    if(mo==="add"){setBooks([...books,{...cleanFm,id:bookId,price:parseFloat(fm.price)||9.99,originalPrice:parseFloat(fm.originalPrice)||parseFloat((parseFloat(fm.price)*1.8).toFixed(2)),pages:parseInt(fm.pages)||220,sales:0,rating:5.0}]);setTs("Book added!");}
+    else{setBooks(books.map(b=>b.id===fm.id?{...b,...cleanFm,price:parseFloat(fm.price),originalPrice:parseFloat(fm.originalPrice)||b.originalPrice,pages:parseInt(fm.pages)||b.pages}:b));setTs("Book updated!");}
+    setMo(null);
+  };
+  const del=id=>{
+    setBooks(books.filter(b=>b.id!==id));
+    try{localStorage.removeItem("dbs_cover_"+id);localStorage.removeItem("dbs_pdf_"+id);localStorage.removeItem("dbs_pdfname_"+id);}catch{}
+    setDc(null);setTs("Book deleted.");
+  };
   const tog=id=>setBooks(books.map(b=>b.id===id?{...b,status:b.status==="Active"?"Inactive":"Active"}:b));
   return <div className="fade-in">
     {ts&&<Toast msg={ts} onClose={()=>setTs("")}/>}
@@ -273,26 +311,65 @@ const BooksTab = () => {
     </table></div></div>
     {mo!==null&&<div className="modal-bg" onClick={e=>e.target===e.currentTarget&&setMo(null)}><div className="modal fade-in" style={{padding:28}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:22}}>
-        <h2 className="playfair" style={{fontSize:20,fontWeight:700}}>{mo==="add"?"Add New Book":"Edit Book"}</h2>
+        <h2 className="playfair" style={{fontSize:20,fontWeight:700}}>{mo==="add"?"➕ Add New Book":"✏️ Edit Book"}</h2>
         <button className="btn btn-ghost" style={{padding:"5px 9px"}} onClick={()=>setMo(null)}>✕</button>
       </div>
-      <div style={{display:"grid",gap:13}}>
+      <div style={{display:"grid",gap:14}}>
+
+        {/* ── Cover Image Upload ── */}
+        <div>
+          <label>📸 Book Cover Image</label>
+          <div style={{display:"flex",gap:14,alignItems:"flex-start"}}>
+            <div style={{width:80,height:110,borderRadius:8,overflow:"hidden",background:"var(--surface2)",border:"2px dashed var(--border)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,cursor:"pointer",position:"relative"}}
+              onClick={()=>document.getElementById("coverInput").click()}>
+              {coverPreview
+                ? <img src={coverPreview} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                : <div style={{textAlign:"center",fontSize:11,color:"var(--text3)",padding:6}}><div style={{fontSize:24,marginBottom:4}}>🖼️</div>Click to upload</div>
+              }
+            </div>
+            <div style={{flex:1}}>
+              <input id="coverInput" type="file" accept="image/*" style={{display:"none"}} onChange={handleCoverUpload}/>
+              <button className="btn btn-ghost" style={{width:"100%",padding:"9px",fontSize:12,marginBottom:8}} onClick={()=>document.getElementById("coverInput").click()}>
+                📷 {coverPreview?"Change Cover Image":"Upload Cover Image"}
+              </button>
+              {coverPreview&&<button className="btn btn-danger" style={{width:"100%",padding:"7px",fontSize:11}} onClick={()=>{setCoverPreview(null);setFm(f=>({...f,_coverData:null}));}}>🗑️ Remove Image</button>}
+              <div style={{fontSize:10,color:"var(--text3)",marginTop:6}}>JPG, PNG, WebP • Max 2MB</div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── PDF Upload ── */}
+        <div style={{background:"rgba(201,168,76,0.06)",border:"1px solid rgba(201,168,76,0.2)",borderRadius:10,padding:"12px 14px"}}>
+          <label>📄 PDF File Upload</label>
+          <input id="pdfInput" type="file" accept=".pdf,application/pdf" style={{display:"none"}} onChange={handlePdfUpload}/>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <button className="btn btn-ghost" style={{flex:1,padding:"9px",fontSize:12}} onClick={()=>document.getElementById("pdfInput").click()}>
+              📤 {pdfName?"Change PDF":"Upload PDF"}
+            </button>
+            {pdfName&&<button className="btn btn-danger" style={{padding:"9px 12px",fontSize:11}} onClick={()=>{setPdfName("");setFm(f=>({...f,_pdfData:null,_pdfName:""}));}}>✕</button>}
+          </div>
+          {pdfName
+            ? <div style={{marginTop:8,fontSize:12,color:"var(--green)",display:"flex",alignItems:"center",gap:6}}><span>✅</span><span style={{fontFamily:"DM Mono",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pdfName}</span></div>
+            : <div style={{fontSize:10,color:"var(--text3)",marginTop:6}}>PDF file • Max 10MB • Customer ko email pe bhejna hoga</div>
+          }
+        </div>
+
         <div><label>Book Title *</label><input placeholder="Title" value={fm.title} onChange={e=>setFm({...fm,title:e.target.value})}/></div>
         <div><label>Author *</label><input placeholder="Author" value={fm.author} onChange={e=>setFm({...fm,author:e.target.value})}/></div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-          <div><label>Price *</label><input placeholder="19.99" value={fm.price} onChange={e=>setFm({...fm,price:e.target.value})}/></div>
-          <div><label>Category</label><select value={fm.category} onChange={e=>setFm({...fm,category:e.target.value})}>{ALL_CATS.map(c=><option key={c}>{c}</option>)}</select></div>
+          <div><label>Price (USD) *</label><input placeholder="19.99" value={fm.price} onChange={e=>setFm({...fm,price:e.target.value})}/></div>
+          <div><label>Original Price</label><input placeholder="39.99" value={fm.originalPrice} onChange={e=>setFm({...fm,originalPrice:e.target.value})}/></div>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-          <div><label>Original Price</label><input placeholder="39.99" value={fm.originalPrice} onChange={e=>setFm({...fm,originalPrice:e.target.value})}/></div>
+          <div><label>Category</label><select value={fm.category} onChange={e=>setFm({...fm,category:e.target.value})}>{ALL_CATS.map(c=><option key={c}>{c}</option>)}</select></div>
           <div><label>Pages</label><input placeholder="220" value={fm.pages} onChange={e=>setFm({...fm,pages:e.target.value})}/></div>
         </div>
         <div><label>Description</label><textarea placeholder="Short book description..." value={fm.description} onChange={e=>setFm({...fm,description:e.target.value})} style={{resize:"vertical",minHeight:70}}/></div>
         <div><label>Status</label><select value={fm.status} onChange={e=>setFm({...fm,status:e.target.value})}><option>Active</option><option>Inactive</option></select></div>
       </div>
       <div style={{display:"flex",gap:10,marginTop:22}}>
-        <button className="btn btn-gold" style={{flex:1,padding:"11px"}} onClick={save}>{mo==="add"?"Add Book":"Save"}</button>
-        <button className="btn btn-ghost" style={{padding:"11px 18px"}} onClick={()=>setMo(null)}>Cancel</button>
+        <button className="btn btn-gold" style={{flex:1,padding:"12px",fontSize:14}} onClick={save}>{mo==="add"?"✅ Add Book":"💾 Save Changes"}</button>
+        <button className="btn btn-ghost" style={{padding:"12px 18px"}} onClick={()=>setMo(null)}>Cancel</button>
       </div>
     </div></div>}
     {dc&&<div className="modal-bg" onClick={e=>e.target===e.currentTarget&&setDc(null)}><div className="modal fade-in" style={{padding:28,maxWidth:360,textAlign:"center"}}>
