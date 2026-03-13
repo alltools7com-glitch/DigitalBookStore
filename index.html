@@ -1085,144 +1085,113 @@ const CheckoutPage = ({ cart, setCart, setPage }) => {
 };
 
 const AuthPage = ({ setPage, setUser }) => {
-  const [mode, setMode] = useState("login");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [pass, setPass] = useState("");
-  const [err, setErr] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [mode, setMode] = React.useState("login");
+  const [name, setName] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [pass, setPass] = React.useState("");
+  const [err, setErr] = React.useState("");
 
-  // ── Google Sign-In ──
   const handleGoogle = () => {
-    setLoading(true);
-    setErr("");
-    try {
-      // Load Google Identity Services if not loaded
-      if(!window.google){
-        const script = document.createElement('script');
-        script.src = 'https://accounts.google.com/gsi/client';
-        script.onload = () => initGoogle();
-        script.onerror = () => { setLoading(false); setErr("Google login load nahi hua. Internet check karo."); };
-        document.head.appendChild(script);
-      } else { initGoogle(); }
-    } catch(e){ setLoading(false); setErr("Google login mein error aaya."); }
+    // Load Google GSI library then redirect
+    var gsiUrl = "https://accounts.google.com/o/oauth2/v2/auth";
+    var params = "client_id=866736580262-k78q7vr9e3v40n4ll18bae9jt9b8l604.apps.googleusercontent.com";
+    params += "&redirect_uri=" + encodeURIComponent("https://alltools7com-glitch.github.io/DigitalBookStore/");
+    params += "&response_type=token&scope=email%20profile";
+    window.location.href = gsiUrl + "?" + params;
   };
 
-  const initGoogle = () => {
-    // Use Google OAuth2 popup
-    const clientId = "866736580262-k78q7vr9e3v40n4ll18bae9jt9b8l604.apps.googleusercontent.com";
-    window.google.accounts.oauth2.initTokenClient({
-      client_id: clientId,
-      scope: 'email profile',
-      callback: (resp) => {
-        if(resp.access_token){
-          fetch(`https://www.googleapis.com/oauth2/v1/userinfo?access_token=${resp.access_token}`)
-            .then(r=>r.json())
-            .then(info=>{
-              setUser({name:info.name, email:info.email, avatar:info.picture, provider:'google'});
-              setLoading(false);
-              setPage("home");
-            })
-            .catch(()=>{ setLoading(false); setErr("Google login mein problem aaya."); });
-        } else { setLoading(false); }
-      },
-    }).requestAccessToken();
-  };
-
-  // ── Facebook Login ──
-  const handleFacebook = () => {
-    setLoading(true);
-    setErr("Facebook login ke liye FB App ID setup karna hoga. Abhi Guest Login use karo.");
-    setLoading(false);
-  };
-
-  // ── Email Sign-In / Register ──
   const handleEmail = () => {
-    if(!email.trim() || !email.includes("@")){ setErr("Valid email address likhein."); return; }
-    if(mode==="register" && !name.trim()){ setErr("Apna naam likhein."); return; }
-    if(!pass || pass.length < 4){ setErr("Password kam se kam 4 characters ka hona chahiye."); return; }
+    if(!email.trim() || !email.includes("@")){ setErr("Valid email likhein."); return; }
+    if(mode === "register" && !name.trim()){ setErr("Naam likhein."); return; }
+    if(!pass || pass.length < 4){ setErr("Password 4+ characters ka ho."); return; }
     setErr("");
-    // Simple localStorage based auth
     try {
-      const users = JSON.parse(localStorage.getItem('dbs_users')||'[]');
-      if(mode==="register"){
-        if(users.find(u=>u.email===email)){ setErr("Ye email already registered hai. Sign in karo."); return; }
-        const newUser = {name, email, pass, joined: new Date().toLocaleDateString()};
+      var users = JSON.parse(localStorage.getItem("dbs_users") || "[]");
+      if(mode === "register"){
+        if(users.find(function(u){ return u.email === email; })){ setErr("Email already registered hai."); return; }
+        var newUser = {name: name, email: email, pass: pass};
         users.push(newUser);
-        localStorage.setItem('dbs_users', JSON.stringify(users));
-        setUser({name, email, provider:'email'});
+        localStorage.setItem("dbs_users", JSON.stringify(users));
+        setUser({name: name, email: email});
         setPage("home");
       } else {
-        const found = users.find(u=>u.email===email && u.pass===pass);
+        var found = users.find(function(u){ return u.email === email && u.pass === pass; });
         if(!found){ setErr("Email ya password galat hai."); return; }
-        setUser({name:found.name, email, provider:'email'});
+        setUser({name: found.name, email: email});
         setPage("home");
       }
-    } catch(e){ setErr("Kuch problem aayi. Dobara try karo."); }
+    } catch(e){ setErr("Error aaya. Dobara try karo."); }
   };
 
-  // ── Guest / Skip ──
   const handleGuest = () => {
-    setUser({name:"Guest", email:"", provider:'guest'});
+    setUser({name: "Guest", email: ""});
     setPage("store");
   };
 
   return (
-    <div style={{maxWidth:440,margin:"48px auto",padding:"0 24px"}}>
+    <div style={{maxWidth:420,margin:"48px auto",padding:"0 20px"}}>
       <div style={{textAlign:"center",marginBottom:28}}>
         <div style={{fontSize:44,marginBottom:10}}>📚</div>
         <h1 className="playfair" style={{fontSize:30,fontWeight:700,marginBottom:6}}>
-          {mode==="login"?"Welcome Back":"Create Account"}
+          {mode === "login" ? "Welcome Back" : "Create Account"}
         </h1>
         <p style={{color:"var(--text2)",fontSize:14}}>
-          {mode==="login"?"Sign in to access your library":"Join thousands of readers today"}
+          {mode === "login" ? "Sign in to your library" : "Join thousands of readers"}
         </p>
       </div>
 
       <div className="card" style={{padding:28}}>
-        {/* ── Social Buttons ── */}
+
         <div style={{display:"grid",gap:10,marginBottom:20}}>
-          <button
-            onClick={handleGoogle}
-            disabled={loading}
-            style={{width:"100%",padding:"13px",background:"#fff",border:"2px solid #dadce0",borderRadius:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,fontSize:14,fontWeight:700,color:"#3c4043",fontFamily:"DM Sans",transition:"all .2s",boxShadow:"0 2px 8px rgba(0,0,0,0.1)"}}>
-            <span style={{fontSize:20}}>🔵</span>
-            {loading ? "Loading..." : "Continue with Google"}
+          <button onClick={handleGoogle}
+            style={{width:"100%",padding:"13px",background:"#fff",border:"2px solid #dadce0",borderRadius:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,fontSize:14,fontWeight:700,color:"#3c4043",fontFamily:"DM Sans"}}>
+            <span style={{fontSize:18,background:"linear-gradient(135deg,#4285F4,#34A853,#FBBC05,#EA4335)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",fontWeight:900}}>G</span>
+            Continue with Google
           </button>
-          <button
-            onClick={handleFacebook}
-            style={{width:"100%",padding:"13px",background:"#1877F2",border:"none",borderRadius:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,fontSize:14,fontWeight:700,color:"#fff",fontFamily:"DM Sans",transition:"all .2s"}}>
-            <span style={{fontSize:20}}>👤</span>
+          <button onClick={()=>setErr("Facebook login ke liye contact karo: alihaidar9007@gmail.com")}
+            style={{width:"100%",padding:"13px",background:"#1877F2",border:"none",borderRadius:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,fontSize:14,fontWeight:700,color:"#fff",fontFamily:"DM Sans"}}>
+            <span style={{fontSize:18,fontWeight:900}}>f</span>
             Continue with Facebook
           </button>
         </div>
 
-        {/* Divider */}
         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
           <div style={{flex:1,height:1,background:"var(--border)"}}/>
-          <span style={{fontSize:12,color:"var(--text3)",fontWeight:500}}>ya email se</span>
+          <span style={{fontSize:12,color:"var(--text3)"}}>ya email se</span>
           <div style={{flex:1,height:1,background:"var(--border)"}}/>
         </div>
 
-        {/* ── Email Form ── */}
-        {err&&<div style={{background:"rgba(224,92,75,.1)",border:"1px solid rgba(224,92,75,.3)",borderRadius:8,padding:"10px 14px",fontSize:13,color:"#e05c4b",marginBottom:12}}>{err}</div>}
-        {mode==="register"&&<div style={{marginBottom:14}}><label>Full Name</label><input placeholder="Muhammad Ali" value={name} onChange={e=>{setName(e.target.value);setErr("");}}/></div>}
-        <div style={{marginBottom:14}}><label>Email Address</label><input type="email" placeholder="your@email.com" value={email} onChange={e=>{setEmail(e.target.value);setErr("");}}/></div>
-        <div style={{marginBottom:18}}><label>Password</label><input type="password" placeholder="••••••••" value={pass} onChange={e=>{setPass(e.target.value);setErr("");}}/></div>
+        {err && <div style={{background:"rgba(224,92,75,.1)",border:"1px solid rgba(224,92,75,.3)",borderRadius:8,padding:"10px 14px",fontSize:13,color:"#e05c4b",marginBottom:12}}>{err}</div>}
+
+        {mode === "register" && (
+          <div style={{marginBottom:14}}>
+            <label>Full Name</label>
+            <input placeholder="Muhammad Ali" value={name} onChange={function(e){setName(e.target.value);setErr("");}}/>
+          </div>
+        )}
+        <div style={{marginBottom:14}}>
+          <label>Email Address</label>
+          <input type="email" placeholder="your@email.com" value={email} onChange={function(e){setEmail(e.target.value);setErr("");}}/>
+        </div>
+        <div style={{marginBottom:18}}>
+          <label>Password</label>
+          <input type="password" placeholder="••••••••" value={pass} onChange={function(e){setPass(e.target.value);setErr("");}}/>
+        </div>
+
         <button className="btn-gold" style={{width:"100%",padding:"13px",fontSize:15,marginBottom:10}} onClick={handleEmail}>
-          {mode==="login"?"🔐 Sign In →":"✅ Create Account →"}
+          {mode === "login" ? "Sign In →" : "Create Account →"}
         </button>
 
-        {/* ── Guest Option ── */}
-        <button onClick={handleGuest} style={{width:"100%",padding:"11px",background:"transparent",border:"1px dashed var(--border)",borderRadius:10,cursor:"pointer",fontSize:13,color:"var(--text3)",fontFamily:"DM Sans",marginBottom:14,transition:"all .2s"}}
-          onMouseEnter={e=>e.target.style.borderColor="var(--gold)"} onMouseLeave={e=>e.target.style.borderColor=""}>
-          👤 Guest ke tor par continue karo (login ke bina)
+        <button onClick={handleGuest}
+          style={{width:"100%",padding:"11px",background:"transparent",border:"1px dashed var(--border)",borderRadius:10,cursor:"pointer",fontSize:13,color:"var(--text3)",fontFamily:"DM Sans",marginBottom:16}}>
+          👤 Guest ke tor par continue karo
         </button>
 
         <div style={{textAlign:"center",fontSize:13}}>
-          {mode==="login"
-            ? <>Account nahi hai? <span style={{color:"var(--gold)",cursor:"pointer",fontWeight:600}} onClick={()=>{setMode("register");setErr("");}}>Sign up free</span></>
-            : <>Pehle se account hai? <span style={{color:"var(--gold)",cursor:"pointer",fontWeight:600}} onClick={()=>{setMode("login");setErr("");}}>Sign in</span></>}
+          {mode === "login"
+            ? <span>Account nahi? <span style={{color:"var(--gold)",cursor:"pointer",fontWeight:600}} onClick={function(){setMode("register");setErr("");}}>Sign up</span></span>
+            : <span>Account hai? <span style={{color:"var(--gold)",cursor:"pointer",fontWeight:600}} onClick={function(){setMode("login");setErr("");}}>Sign in</span></span>
+          }
         </div>
       </div>
     </div>
