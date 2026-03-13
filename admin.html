@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>⚙️ Admin — DigitalBookStore</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23C9A84C'/><text y='72' x='50' text-anchor='middle' font-size='62'>⚙️</text></svg>"/>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
@@ -54,6 +56,117 @@
   </style>
 </head>
 <body><div id="root"></div>
+
+<!-- ═══ FIREBASE CONFIG — Yahan apna Firebase config paste karo ═══ -->
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// HOW TO SETUP FIREBASE (free, 2 minute):
+// 1. Go to https://console.firebase.google.com
+// 2. "Create a project" → give any name → Continue
+// 3. Left sidebar → "Build" → "Realtime Database" → Create → Test mode → Done
+// 4. Left sidebar → "Build" → "Storage" → Get started → Test mode → Done
+// 5. Left sidebar → Project Settings (gear icon) → "Your apps" → </> Web → Register
+// 6. Copy the firebaseConfig values below
+// ─────────────────────────────────────────────────────────────────────────────
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyAPJ2Dn2nxxoesgv0NZ-Xtw0MtpBWBUhbQ",
+  authDomain:        "digitalbookstore-32ed4.firebaseapp.com",
+  databaseURL:       "https://digitalbookstore-32ed4-default-rtdb.firebaseio.com",
+  projectId:         "digitalbookstore-32ed4",
+  storageBucket:     "digitalbookstore-32ed4.firebasestorage.app",
+  messagingSenderId: "701831474481",
+  appId:             "1:701831474481:web:41554b05401f6ee4b3d410",
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
+const FB_ON = !!(FIREBASE_CONFIG.databaseURL && FIREBASE_CONFIG.databaseURL.includes("firebaseio.com"));
+let fireDB = null;
+if (FB_ON) {
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    fireDB = firebase.database();
+    console.log("✅ Firebase connected — real-time sync active");
+  } catch(e) { console.warn("Firebase init failed:", e.message); }
+} else {
+  console.log("ℹ️ Firebase not configured — using localStorage");
+}
+
+// ── Universal Data Layer ──────────────────────────────────────────────────────
+const DB = {
+  listen(key, cb) {
+    if (fireDB) {
+      const ref = fireDB.ref(key);
+      ref.on('value', snap => { cb(snap.val()); });
+      return () => ref.off('value');
+    }
+    try { const s = localStorage.getItem(key); if(s) cb(JSON.parse(s)); } catch {}
+    return () => {};
+  },
+  set(key, val) {
+    if (fireDB) return fireDB.ref(key).set(val);
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+    return Promise.resolve();
+  },
+  // Cover image — store base64 directly in Realtime Database (free, no Storage needed)
+  async uploadImage(file, bookId) {
+    return new Promise((resolve, reject) => {
+      if (file.size > 500 * 1024) {
+        // Compress large images before storing
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX = 600;
+          let w = img.width, h = img.height;
+          if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          const base64 = canvas.toDataURL('image/jpeg', 0.75);
+          URL.revokeObjectURL(url);
+          if (fireDB) {
+            fireDB.ref('dbs_covers/' + bookId).set(base64)
+              .then(() => resolve(base64))
+              .catch(() => { localStorage.setItem('dbs_cover_' + bookId, base64); resolve(base64); });
+          } else {
+            try { localStorage.setItem('dbs_cover_' + bookId, base64); } catch {}
+            resolve(base64);
+          }
+        };
+        img.onerror = () => reject(new Error('Image load failed'));
+        img.src = url;
+      } else {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          const base64 = ev.target.result;
+          if (fireDB) {
+            fireDB.ref('dbs_covers/' + bookId).set(base64)
+              .then(() => resolve(base64))
+              .catch(() => { localStorage.setItem('dbs_cover_' + bookId, base64); resolve(base64); });
+          } else {
+            try { localStorage.setItem('dbs_cover_' + bookId, base64); } catch {}
+            resolve(base64);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  },
+  async deleteImage(bookId) {
+    if (fireDB) { try { await fireDB.ref('dbs_covers/' + bookId).remove(); } catch {} }
+    try { localStorage.removeItem('dbs_cover_' + bookId); } catch {}
+  },
+  async reset(keys) {
+    if (fireDB) {
+      const updates = {};
+      keys.forEach(k => updates[k] = null);
+      updates['dbs_covers'] = null;
+      await fireDB.ref().update(updates);
+    } else {
+      keys.forEach(k => { try { localStorage.removeItem(k); } catch {} });
+    }
+  }
+};
+</script>
 <script type="text/babel">
 const { useState, useEffect } = React;
 
@@ -233,54 +346,83 @@ const Dashboard = () => {
 
 // BOOKS TAB
 const BooksTab = () => {
-  const [books,setBooks]=useState(()=>{try{const s=localStorage.getItem("dbs_books");return s?JSON.parse(s):INIT_BOOKS;}catch{return INIT_BOOKS;}});
-  useEffect(()=>{try{localStorage.setItem("dbs_books",JSON.stringify(books));}catch{}},[books]);
-  const [search,setSearch]=useState(""),cat=useState("All"),modal=useState(null),form=useState({title:"",author:"",price:"",originalPrice:"",category:"Business",status:"Active",description:"",pages:""}),toast=useState(""),del2=useState(null);
+  const [books,setBooks]=useState(INIT_BOOKS);
+  const [saving,setSaving]=useState(false);
+  useEffect(()=>{ const unsub=DB.listen('dbs_books',data=>{if(data){const arr=Array.isArray(data)?data:Object.values(data);setBooks(arr);}else{setBooks(INIT_BOOKS);}});return unsub;},[]);
+  const [search,setSearch]=useState(""),cat=useState("All"),modal=useState(null),form=useState({title:"",author:"",price:"",originalPrice:"",category:"Business",status:"Active",description:"",pages:"",rating:""}),toast=useState(""),del2=useState(null);
   const [ct,setCt]=cat;const [mo,setMo]=modal;const [fm,setFm]=form;const [ts,setTs]=toast;const [dc,setDc]=del2;
   const [coverPreview,setCoverPreview]=useState(null);
+  const [coverFile,setCoverFile]=useState(null);
   const [pdfName,setPdfName]=useState("");
   const filtered=books.filter(b=>(ct==="All"||b.category===ct)&&(b.title.toLowerCase().includes(search.toLowerCase())||b.author.toLowerCase().includes(search.toLowerCase())));
-  const openAdd=()=>{setFm({title:"",author:"",price:"",originalPrice:"",category:"Business",status:"Active",description:"",pages:""});setCoverPreview(null);setPdfName("");setMo("add");};
+  const openAdd=()=>{setFm({title:"",author:"",price:"",originalPrice:"",category:"Business",status:"Active",description:"",pages:"",rating:""});setCoverPreview(null);setCoverFile(null);setPdfName("");setMo("add");};
   const openEdit=b=>{
-    setFm({...b,price:String(b.price),originalPrice:String(b.originalPrice||""),pages:String(b.pages||""),description:b.description||""});
-    try{const img=localStorage.getItem("dbs_cover_"+b.id);setCoverPreview(img||null);}catch{setCoverPreview(null);}
-    try{const pn=localStorage.getItem("dbs_pdfname_"+b.id);setPdfName(pn||"");}catch{setPdfName("");}
+    setFm({...b,price:String(b.price),originalPrice:String(b.originalPrice||""),pages:String(b.pages||""),description:b.description||"",rating:String(b.rating||"4.8")});
+    setCoverPreview(b.coverUrl||null);setCoverFile(null);
+    // Load PDF name from Firebase or localStorage
+    if(fireDB){
+      fireDB.ref('dbs_pdfs/'+b.id+'/name').once('value').then(snap=>{setPdfName(snap.val()||"");}).catch(()=>setPdfName(""));
+    } else {
+      try{const pn=localStorage.getItem("dbs_pdfname_"+b.id);setPdfName(pn||"");}catch{setPdfName("");}
+    }
     setMo(b);
   };
   const handleCoverUpload=e=>{
     const file=e.target.files[0];
     if(!file)return;
-    if(file.size>2*1024*1024){alert("Image bahut bari hai! Max 2MB allowed.");return;}
+    if(file.size>2*1024*1024){alert("Image max 2MB!");return;}
     const reader=new FileReader();
-    reader.onload=ev=>{setCoverPreview(ev.target.result);setFm(f=>({...f,_coverData:ev.target.result}));};
+    reader.onload=ev=>setCoverPreview(ev.target.result);
     reader.readAsDataURL(file);
+    setCoverFile(file);
   };
   const handlePdfUpload=e=>{
     const file=e.target.files[0];
     if(!file)return;
-    if(file.size>10*1024*1024){alert("PDF bahut bara hai! Max 10MB allowed.");return;}
+    if(file.size>15*1024*1024){alert("PDF max 15MB allowed!");return;}
+    setPdfName(file.name+"  ⏳ Loading...");
     const reader=new FileReader();
     reader.onload=ev=>{setFm(f=>({...f,_pdfData:ev.target.result,_pdfName:file.name}));setPdfName(file.name);};
+    reader.onerror=()=>{setPdfName("");alert("File read nahi hua, dobara try karo.");};
     reader.readAsDataURL(file);
   };
-  const save=()=>{
+  const save=async()=>{
     if(!fm.title||!fm.author||!fm.price)return;
+    setSaving(true);
     const bookId=mo==="add"?Date.now():fm.id;
-    // Save cover image to localStorage
-    if(fm._coverData){try{localStorage.setItem("dbs_cover_"+bookId,fm._coverData);}catch(e){alert("Image save nahi hui — storage full ho sakti hai");}}
-    // Save PDF to localStorage
-    if(fm._pdfData){try{localStorage.setItem("dbs_pdf_"+bookId,fm._pdfData);localStorage.setItem("dbs_pdfname_"+bookId,fm._pdfName||"book.pdf");}catch(e){alert("PDF save nahi hua — storage full ho sakti hai (PDF ka size zyada hai)");}}
-    const cleanFm={...fm};delete cleanFm._coverData;delete cleanFm._pdfData;delete cleanFm._pdfName;
-    if(mo==="add"){setBooks([...books,{...cleanFm,id:bookId,price:parseFloat(fm.price)||9.99,originalPrice:parseFloat(fm.originalPrice)||parseFloat((parseFloat(fm.price)*1.8).toFixed(2)),pages:parseInt(fm.pages)||220,sales:0,rating:5.0}]);setTs("Book added!");}
-    else{setBooks(books.map(b=>b.id===fm.id?{...b,...cleanFm,price:parseFloat(fm.price),originalPrice:parseFloat(fm.originalPrice)||b.originalPrice,pages:parseInt(fm.pages)||b.pages}:b));setTs("Book updated!");}
-    setMo(null);
+    let coverUrl=fm.coverUrl||null;
+    if(coverFile){coverUrl=await DB.uploadImage(coverFile,bookId);}
+    // ── Save PDF to Firebase Realtime Database (not localStorage) ──
+    if(fm._pdfData){
+      try{
+        if(fireDB){
+          await fireDB.ref('dbs_pdfs/'+bookId).set({data:fm._pdfData,name:fm._pdfName||'book.pdf'});
+        } else {
+          // localStorage fallback — only works for small PDFs
+          localStorage.setItem("dbs_pdf_"+bookId, fm._pdfData);
+          localStorage.setItem("dbs_pdfname_"+bookId, fm._pdfName||"book.pdf");
+        }
+      }catch(e){alert("PDF save nahi hua: "+e.message);}
+    }
+    const cleanFm={...fm};delete cleanFm._pdfData;delete cleanFm._pdfName;delete cleanFm._coverData;
+    let newBooks;
+    if(mo==="add"){newBooks=[...books,{...cleanFm,id:bookId,coverUrl,price:parseFloat(fm.price)||9.99,originalPrice:parseFloat(fm.originalPrice)||parseFloat((parseFloat(fm.price)*1.8).toFixed(2)),pages:parseInt(fm.pages)||220,sales:0,rating:parseFloat(fm.rating)||5.0}];}
+    else{newBooks=books.map(b=>b.id===fm.id?{...b,...cleanFm,coverUrl,price:parseFloat(fm.price),originalPrice:parseFloat(fm.originalPrice)||b.originalPrice,pages:parseInt(fm.pages)||b.pages,rating:parseFloat(fm.rating)||b.rating}:b);}
+    setBooks(newBooks);
+    await DB.set('dbs_books',newBooks);
+    setSaving(false);setMo(null);setTs(mo==="add"?"✅ Book added!":"💾 Book updated!");
   };
-  const del=id=>{
-    setBooks(books.filter(b=>b.id!==id));
-    try{localStorage.removeItem("dbs_cover_"+id);localStorage.removeItem("dbs_pdf_"+id);localStorage.removeItem("dbs_pdfname_"+id);}catch{}
+  const del=async id=>{
+    const newBooks=books.filter(b=>b.id!==id);
+    setBooks(newBooks);
+    await DB.set('dbs_books',newBooks);
+    await DB.deleteImage(id);
+    // Delete PDF from Firebase
+    try{ if(fireDB) await fireDB.ref('dbs_pdfs/'+id).remove(); }catch{}
+    try{localStorage.removeItem("dbs_pdf_"+id);localStorage.removeItem("dbs_pdfname_"+id);}catch{}
     setDc(null);setTs("Book deleted.");
   };
-  const tog=id=>setBooks(books.map(b=>b.id===id?{...b,status:b.status==="Active"?"Inactive":"Active"}:b));
+  const tog=async id=>{const newBooks=books.map(b=>b.id===id?{...b,status:b.status==="Active"?"Inactive":"Active"}:b);setBooks(newBooks);await DB.set('dbs_books',newBooks);};
   return <div className="fade-in">
     {ts&&<Toast msg={ts} onClose={()=>setTs("")}/>}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12}}>
@@ -294,8 +436,16 @@ const BooksTab = () => {
       </div>
     </div>
     <div className="card" style={{overflow:"hidden"}}><div style={{overflowX:"auto"}}><table>
-      <thead><tr><th>Title</th><th>Author</th><th>Category</th><th>Price</th><th>Sales</th><th>Status</th><th>Actions</th></tr></thead>
-      <tbody>{filtered.map(b=><tr key={b.id}>
+      <thead><tr><th style={{width:50}}>Cover</th><th>Title</th><th>Author</th><th>Category</th><th>Price</th><th>Sales</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>{filtered.map(b=>{
+        let coverImg=b.coverUrl||null;if(!coverImg){try{coverImg=localStorage.getItem("dbs_cover_"+b.id);}catch(e){}}
+        return <tr key={b.id}>
+        <td>
+          {coverImg
+            ?<img src={coverImg} alt="" style={{width:36,height:50,objectFit:"cover",borderRadius:5,display:"block"}}/>
+            :<div style={{width:36,height:50,background:`linear-gradient(145deg,#1a1208,rgba(201,168,76,0.3))`,borderRadius:5,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:"#C9A84C"}}>{b.title.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()}</div>
+          }
+        </td>
         <td style={{fontWeight:500,maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{b.title}</td>
         <td style={{color:"var(--text2)"}}>{b.author}</td>
         <td><span className="tag" style={{background:"var(--surface2)",color:"var(--text3)"}}>{b.category}</span></td>
@@ -307,7 +457,8 @@ const BooksTab = () => {
           <button className="btn" style={{padding:"4px 9px",fontSize:11,background:"rgba(201,168,76,.08)",border:"1px solid rgba(201,168,76,.2)",color:"var(--gold)"}} onClick={()=>tog(b.id)}>{b.status==="Active"?"Pause":"Resume"}</button>
           <button className="btn btn-danger" style={{padding:"4px 9px",fontSize:11}} onClick={()=>setDc(b.id)}>Del</button>
         </div></td>
-      </tr>)}</tbody>
+      </tr>;})}
+      </tbody>
     </table></div></div>
     {mo!==null&&<div className="modal-bg" onClick={e=>e.target===e.currentTarget&&setMo(null)}><div className="modal fade-in" style={{padding:28}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:22}}>
@@ -340,17 +491,20 @@ const BooksTab = () => {
 
         {/* ── PDF Upload ── */}
         <div style={{background:"rgba(201,168,76,0.06)",border:"1px solid rgba(201,168,76,0.2)",borderRadius:10,padding:"12px 14px"}}>
-          <label>📄 PDF File Upload</label>
+          <label>📄 PDF File Upload {fireDB&&<span style={{color:"var(--green)",fontSize:10,fontWeight:600,marginLeft:6}}>☁️ Firebase mein save hoga</span>}</label>
           <input id="pdfInput" type="file" accept=".pdf,application/pdf" style={{display:"none"}} onChange={handlePdfUpload}/>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
             <button className="btn btn-ghost" style={{flex:1,padding:"9px",fontSize:12}} onClick={()=>document.getElementById("pdfInput").click()}>
-              📤 {pdfName?"Change PDF":"Upload PDF"}
+              📤 {pdfName&&!pdfName.includes("⏳")?"Change PDF":"Upload PDF"}
             </button>
-            {pdfName&&<button className="btn btn-danger" style={{padding:"9px 12px",fontSize:11}} onClick={()=>{setPdfName("");setFm(f=>({...f,_pdfData:null,_pdfName:""}));}}>✕</button>}
+            {pdfName&&!pdfName.includes("⏳")&&<button className="btn btn-danger" style={{padding:"9px 12px",fontSize:11}} onClick={()=>{setPdfName("");setFm(f=>({...f,_pdfData:null,_pdfName:""}));}}>✕</button>}
           </div>
           {pdfName
-            ? <div style={{marginTop:8,fontSize:12,color:"var(--green)",display:"flex",alignItems:"center",gap:6}}><span>✅</span><span style={{fontFamily:"DM Mono",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pdfName}</span></div>
-            : <div style={{fontSize:10,color:"var(--text3)",marginTop:6}}>PDF file • Max 10MB • Customer ko email pe bhejna hoga</div>
+            ? <div style={{marginTop:8,fontSize:12,color:pdfName.includes("⏳")?"var(--gold)":"var(--green)",display:"flex",alignItems:"center",gap:6}}>
+                <span>{pdfName.includes("⏳")?"⏳":"✅"}</span>
+                <span style={{fontFamily:"DM Mono",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pdfName}</span>
+              </div>
+            : <div style={{fontSize:10,color:"var(--text3)",marginTop:6}}>PDF file • Max 15MB • Firebase mein save hoga (har device pe accessible)</div>
           }
         </div>
 
@@ -365,10 +519,13 @@ const BooksTab = () => {
           <div><label>Pages</label><input placeholder="220" value={fm.pages} onChange={e=>setFm({...fm,pages:e.target.value})}/></div>
         </div>
         <div><label>Description</label><textarea placeholder="Short book description..." value={fm.description} onChange={e=>setFm({...fm,description:e.target.value})} style={{resize:"vertical",minHeight:70}}/></div>
-        <div><label>Status</label><select value={fm.status} onChange={e=>setFm({...fm,status:e.target.value})}><option>Active</option><option>Inactive</option></select></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div><label>Rating (1-5)</label><input type="number" min="1" max="5" step="0.1" placeholder="4.8" value={fm.rating||""} onChange={e=>setFm({...fm,rating:e.target.value})}/></div>
+          <div><label>Status</label><select value={fm.status} onChange={e=>setFm({...fm,status:e.target.value})}><option>Active</option><option>Inactive</option></select></div>
+        </div>
       </div>
       <div style={{display:"flex",gap:10,marginTop:22}}>
-        <button className="btn btn-gold" style={{flex:1,padding:"12px",fontSize:14}} onClick={save}>{mo==="add"?"✅ Add Book":"💾 Save Changes"}</button>
+        <button className="btn btn-gold" style={{flex:1,padding:"12px",fontSize:14}} onClick={save} disabled={saving}>{saving?"⏳ Saving...":mo==="add"?"✅ Add Book":"💾 Save Changes"}</button>
         <button className="btn btn-ghost" style={{padding:"12px 18px"}} onClick={()=>setMo(null)}>Cancel</button>
       </div>
     </div></div>}
@@ -383,13 +540,12 @@ const BooksTab = () => {
 
 // ORDERS TAB
 const OrdersTab = () => {
-  const [orders,setOrders]=useState(()=>{try{const s=localStorage.getItem("dbs_orders");return s?JSON.parse(s):INIT_ORDERS;}catch{return INIT_ORDERS;}});
-  useEffect(()=>{try{localStorage.setItem("dbs_orders",JSON.stringify(orders));}catch{}},[orders]);
+  const [orders,setOrders]=useState(INIT_ORDERS);
+  useEffect(()=>{ const unsub=DB.listen('dbs_orders',data=>{if(data){const arr=Array.isArray(data)?data:Object.values(data);setOrders(arr);}else setOrders(INIT_ORDERS);});return unsub;},[]);
   const [filter,setFilter]=useState("All"),search=useState(""),toast=useState("");
-  useEffect(()=>{const refresh=()=>{try{const s=localStorage.getItem("dbs_orders");if(s)setOrders(JSON.parse(s));}catch{}};document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh();});return()=>document.removeEventListener("visibilitychange",refresh);},[]);
   const [sr,setSr]=search;const [ts,setTs]=toast;
   const filtered=orders.filter(o=>(filter==="All"||o.status===filter)&&(o.customer.toLowerCase().includes(sr.toLowerCase())||o.id.includes(sr)||o.book.toLowerCase().includes(sr.toLowerCase())));
-  const upd=(id,st)=>{setOrders(orders.map(o=>o.id===id?{...o,status:st}:o));setTs(`Order ${id} → ${st}`);};
+  const upd=async(id,st)=>{const newOrders=orders.map(o=>o.id===id?{...o,status:st}:o);setOrders(newOrders);await DB.set('dbs_orders',newOrders);setTs(`Order ${id} → ${st}`);};
   return <div className="fade-in">
     {ts&&<Toast msg={ts} onClose={()=>setTs("")}/>}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12}}>
@@ -423,13 +579,13 @@ const OrdersTab = () => {
 
 // CUSTOMERS TAB
 const CustomersTab = () => {
-  const [custs,setCusts]=useState(()=>{try{const s=localStorage.getItem("dbs_customers");return s?JSON.parse(s):INIT_CUSTOMERS;}catch{return INIT_CUSTOMERS;}});
-  useEffect(()=>{try{localStorage.setItem("dbs_customers",JSON.stringify(custs));}catch{}},[custs]);
+  const [custs,setCusts]=useState(INIT_CUSTOMERS);
+  useEffect(()=>{ const unsub=DB.listen('dbs_customers',data=>{if(data){const arr=Array.isArray(data)?data:Object.values(data);setCusts(arr);}else setCusts(INIT_CUSTOMERS);});return unsub;},[]);
   const [search,setSearch]=useState(""),toast=useState(""),dc=useState(null);
   const [ts,setTs]=toast;const [del2,setDel2]=dc;
   const filtered=custs.filter(c=>c.name.toLowerCase().includes(search.toLowerCase())||c.email.includes(search));
-  const del=id=>{setCusts(custs.filter(c=>c.id!==id));setDel2(null);setTs("Customer removed.");};
-  const tog=id=>setCusts(custs.map(c=>c.id===id?{...c,status:c.status==="Active"?"Inactive":"Active"}:c));
+  const del=async id=>{const n=custs.filter(c=>c.id!==id);setCusts(n);await DB.set('dbs_customers',n);setDel2(null);setTs("Customer removed.");};
+  const tog=async id=>{const n=custs.map(c=>c.id===id?{...c,status:c.status==="Active"?"Inactive":"Active"}:c);setCusts(n);await DB.set('dbs_customers',n);};
   return <div className="fade-in">
     {ts&&<Toast msg={ts} onClose={()=>setTs("")}/>}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12}}>
@@ -463,13 +619,13 @@ const CustomersTab = () => {
 
 // COUPONS TAB
 const CouponsTab = () => {
-  const [coupons,setCoupons]=useState(()=>{try{const s=localStorage.getItem("dbs_coupons");return s?JSON.parse(s):INIT_COUPONS;}catch{return INIT_COUPONS;}});
-  useEffect(()=>{try{localStorage.setItem("dbs_coupons",JSON.stringify(coupons));}catch{}},[coupons]);
+  const [coupons,setCoupons]=useState(INIT_COUPONS);
+  useEffect(()=>{ const unsub=DB.listen('dbs_coupons',data=>{if(data){const arr=Array.isArray(data)?data:Object.values(data);setCoupons(arr);}else setCoupons(INIT_COUPONS);});return unsub;},[]);
   const [modal,setModal]=useState(false),form=useState({code:"",desc:"",discount:"",type:"Percent",expires:"",status:"Active"}),toast=useState("");
   const [fm,setFm]=form;const [ts,setTs]=toast;
-  const save=()=>{if(!fm.code||!fm.discount)return;setCoupons([...coupons,{...fm,id:Date.now(),uses:0}]);setModal(false);setTs("Coupon created!");};
-  const del=id=>{setCoupons(coupons.filter(c=>c.id!==id));setTs("Coupon deleted.");};
-  const tog=id=>setCoupons(coupons.map(c=>c.id===id?{...c,status:c.status==="Active"?"Expired":"Active"}:c));
+  const save=async()=>{if(!fm.code||!fm.discount)return;const n=[...coupons,{...fm,id:Date.now(),uses:0}];setCoupons(n);await DB.set('dbs_coupons',n);setModal(false);setTs("Coupon created!");};
+  const del=async id=>{const n=coupons.filter(c=>c.id!==id);setCoupons(n);await DB.set('dbs_coupons',n);setTs("Coupon deleted.");};
+  const tog=async id=>{const n=coupons.map(c=>c.id===id?{...c,status:c.status==="Active"?"Expired":"Active"}:c);setCoupons(n);await DB.set('dbs_coupons',n);};
   return <div className="fade-in">
     {ts&&<Toast msg={ts} onClose={()=>setTs("")}/>}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12}}>
@@ -515,13 +671,14 @@ const CouponsTab = () => {
 
 // CATEGORIES TAB
 const CategoriesTab = () => {
-  const [cats,setCats]=useState(()=>{try{const s=localStorage.getItem("dbs_cats");return s?JSON.parse(s):ALL_CATS.map((c,i)=>({id:i,name:c,books:INIT_BOOKS.filter(b=>b.category===c).length,status:"Active"}));}catch{return ALL_CATS.map((c,i)=>({id:i,name:c,books:INIT_BOOKS.filter(b=>b.category===c).length,status:"Active"}));}});
-  useEffect(()=>{try{localStorage.setItem("dbs_cats",JSON.stringify(cats));}catch{}},[cats]);
+  const initCats=ALL_CATS.map((c,i)=>({id:i,name:c,books:INIT_BOOKS.filter(b=>b.category===c).length,status:"Active"}));
+  const [cats,setCats]=useState(initCats);
+  useEffect(()=>{ const unsub=DB.listen('dbs_cats',data=>{if(data){const arr=Array.isArray(data)?data:Object.values(data);setCats(arr);}else setCats(initCats);});return unsub;},[]);
   const [modal,setModal]=useState(false),newCat=useState(""),toast=useState("");
   const [nc,setNc]=newCat;const [ts,setTs]=toast;
-  const add=()=>{if(!nc.trim())return;setCats([...cats,{id:Date.now(),name:nc,books:0,status:"Active"}]);setNc("");setModal(false);setTs("Category added!");};
-  const tog=id=>setCats(cats.map(c=>c.id===id?{...c,status:c.status==="Active"?"Inactive":"Active"}:c));
-  const del=id=>{setCats(cats.filter(c=>c.id!==id));setTs("Category deleted.");};
+  const add=async()=>{if(!nc.trim())return;const n=[...cats,{id:Date.now(),name:nc,books:0,status:"Active"}];setCats(n);await DB.set('dbs_cats',n);setNc("");setModal(false);setTs("Category added!");};
+  const tog=async id=>{const n=cats.map(c=>c.id===id?{...c,status:c.status==="Active"?"Inactive":"Active"}:c);setCats(n);await DB.set('dbs_cats',n);};
+  const del=async id=>{const n=cats.filter(c=>c.id!==id);setCats(n);await DB.set('dbs_cats',n);setTs("Category deleted.");};
   return <div className="fade-in">
     {ts&&<Toast msg={ts} onClose={()=>setTs("")}/>}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,flexWrap:"wrap",gap:12}}>
@@ -551,13 +708,13 @@ const CategoriesTab = () => {
 // MESSAGES TAB
 const MessagesTab = () => {
   const INIT_MSGS_DATA=[{id:1,name:"Priya Nair",email:"priya.n@email.com",subject:"Refund Request",msg:"Hi, I purchased Code Alchemy but the PDF is not downloading. Can you help?",date:"Mar 10",read:false,starred:true},{id:2,name:"Omar Farooq",email:"omar.f@email.com",subject:"Bulk Order Inquiry",msg:"Hello! I want to purchase 50 copies for my team. What discounts are available?",date:"Mar 10",read:false,starred:false},{id:3,name:"Emma Bright",email:"emma.b@email.com",subject:"Category Suggestion",msg:"Love the store! Would you consider adding a Language Learning or Cooking category?",date:"Mar 9",read:false,starred:false},{id:4,name:"Sarah Mitchell",email:"sarah@email.com",subject:"Thank you!",msg:"Prompt Mastery changed how I work with AI. Best purchase ever. Please add more AI books!",date:"Mar 8",read:true,starred:true},{id:5,name:"David Chen",email:"david.c@email.com",subject:"Invoice needed",msg:"Can I get a proper invoice for Quiet Design? I need it for business expense reimbursement.",date:"Mar 7",read:true,starred:false}];
-  const [msgs,setMsgs]=useState(()=>{try{const s=localStorage.getItem("dbs_msgs");return s?JSON.parse(s):INIT_MSGS_DATA;}catch{return INIT_MSGS_DATA;}});
-  useEffect(()=>{try{localStorage.setItem("dbs_msgs",JSON.stringify(msgs));}catch{}},[msgs]);
+  const [msgs,setMsgs]=useState(INIT_MSGS_DATA);
+  useEffect(()=>{ const unsub=DB.listen('dbs_msgs',data=>{if(data){const arr=Array.isArray(data)?data:Object.values(data);setMsgs(arr);}else setMsgs(INIT_MSGS_DATA);});return unsub;},[]);
   const [sel,setSel]=useState(null),reply=useState(""),toast=useState("");
   const [rep,setRep]=reply;const [ts,setTs]=toast;
-  const markRead=id=>setMsgs(msgs.map(m=>m.id===id?{...m,read:true}:m));
-  const togStar=id=>setMsgs(msgs.map(m=>m.id===id?{...m,starred:!m.starred}:m));
-  const del=id=>{setMsgs(msgs.filter(m=>m.id!==id));setSel(null);};
+  const markRead=async id=>{const n=msgs.map(m=>m.id===id?{...m,read:true}:m);setMsgs(n);await DB.set('dbs_msgs',n);};
+  const togStar=async id=>{const n=msgs.map(m=>m.id===id?{...m,starred:!m.starred}:m);setMsgs(n);await DB.set('dbs_msgs',n);};
+  const del=async id=>{const n=msgs.filter(m=>m.id!==id);setMsgs(n);await DB.set('dbs_msgs',n);setSel(null);};
   const send=()=>{if(!rep.trim())return;setTs(`Reply sent to ${sel.email}`);setRep("");markRead(sel.id);};
   return <div className="fade-in msgs-grid">
     {ts&&<Toast msg={ts} onClose={()=>setTs("")}/>}
@@ -615,6 +772,25 @@ const SettingsTab = ({onLogout}) => {
   return <div className="fade-in" style={{maxWidth:680}}>
     {toast&&<Toast msg={toast} onClose={()=>setToast("")}/>}
     <h1 className="playfair" style={{fontSize:26,fontWeight:700,marginBottom:22}}>Settings</h1>
+
+    {/* ── Firebase Status Card ── */}
+    <div className="card" style={{padding:22,marginBottom:14,border:`1px solid ${FB_ON?"rgba(76,175,130,.3)":"rgba(201,168,76,.3)"}`}}>
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
+        <div style={{fontSize:22}}>{FB_ON?"🔥":"⚡"}</div>
+        <div>
+          <div style={{fontWeight:700,fontSize:14,color:FB_ON?"var(--green)":"var(--gold)"}}>{FB_ON?"Firebase Connected — Real-Time Sync Active ✅":"Firebase Not Connected — localStorage Only"}</div>
+          <div style={{fontSize:12,color:"var(--text3)",marginTop:2}}>{FB_ON?"Har browser mein instantly sync hoga":"Sirf isi browser mein data save hoga"}</div>
+        </div>
+      </div>
+      {!FB_ON&&<div style={{background:"rgba(201,168,76,0.07)",border:"1px solid rgba(201,168,76,0.2)",borderRadius:10,padding:"12px 14px",fontSize:12,color:"var(--text2)",lineHeight:1.8}}>
+        <div style={{fontWeight:700,marginBottom:8,color:"var(--gold)"}}>🚀 Firebase Setup (Free — 2 minutes):</div>
+        <div>1. <a href="https://console.firebase.google.com" target="_blank" style={{color:"var(--gold)"}}>console.firebase.google.com</a> → New Project</div>
+        <div>2. Build → <strong>Realtime Database</strong> → Create → Test mode</div>
+        <div>3. Build → <strong>Storage</strong> → Get started → Test mode</div>
+        <div>4. Project Settings → Your apps → Web → Register → Copy config</div>
+        <div style={{marginTop:8}}>5. Admin.html file mein <strong style={{color:"var(--gold)"}}>FIREBASE_CONFIG</strong> section mein paste karo (line ~60)</div>
+      </div>}
+    </div>
     <div className="card" style={{padding:22,marginBottom:14}}>
       <div style={{fontWeight:700,fontSize:14,marginBottom:16,paddingBottom:10,borderBottom:"1px solid var(--border)"}}>🏪 Store Settings</div>
       <div style={{display:"grid",gap:13}}>
@@ -660,7 +836,7 @@ const SettingsTab = ({onLogout}) => {
       <p style={{fontSize:13,color:"var(--text2)",marginBottom:14}}>Irreversible actions. Proceed with caution.</p>
       <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
         <button className="btn btn-danger" style={{padding:"10px 20px",fontSize:13}} onClick={onLogout}>🚪 Logout from Admin</button>
-        <button className="btn btn-danger" style={{padding:"10px 20px",fontSize:13}} onClick={()=>{if(window.confirm("Sab data reset hoga — INIT data wapas aa jayega. Sure ho?")){['dbs_books','dbs_orders','dbs_customers','dbs_coupons','dbs_cats','dbs_msgs'].forEach(k=>localStorage.removeItem(k));setToast("Data reset! Page refresh karo.");}}}>🔄 Reset All Data</button>
+        <button className="btn btn-danger" style={{padding:"10px 20px",fontSize:13}} onClick={async()=>{if(window.confirm("Sab data reset hoga — INIT data wapas aa jayega. Sure ho?")){await DB.reset(['dbs_books','dbs_orders','dbs_customers','dbs_coupons','dbs_cats','dbs_msgs']);setToast("Data reset! Page refresh karo.");}}}>🔄 Reset All Data</button>
       </div>
     </div>
   </div>;
@@ -684,6 +860,7 @@ function App() {
         </div>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <div style={{fontSize:11,color:"var(--text3)",display:"flex",alignItems:"center",gap:5}}><span style={{width:7,height:7,borderRadius:"50%",background:"var(--green)",display:"inline-block",animation:"pulse2 2s infinite"}}/>Live</div>
+          <a href="index.html" style={{fontSize:12,color:"var(--gold)",textDecoration:"none",display:"flex",alignItems:"center",gap:4}} title="Go to Store">🏪 View Store</a>
           <a href="mailto:dcsystem77@gmail.com" style={{fontSize:12,color:"var(--gold)",textDecoration:"none"}}>📧 Support</a>
           <button className="btn btn-ghost" style={{padding:"6px 12px",fontSize:12}} onClick={()=>setAuth(false)}>Logout</button>
         </div>
