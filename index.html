@@ -59,6 +59,8 @@
   <meta name="theme-color" content="#C9A84C"/>
 
   <!-- ═══ Performance: React PRODUCTION builds (3x faster) ═══ -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
@@ -70,6 +72,40 @@
 </head>
 <body>
   <div id="root"></div>
+
+<!-- ═══ FIREBASE CONFIG — Same config as admin.html ═══ -->
+<script>
+// ── IMPORTANT: Same FIREBASE_CONFIG paste karo jo admin.html mein hai ──────
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyAPJ2Dn2nxxoesgv0NZ-Xtw0MtpBWBUhbQ",
+  authDomain:        "digitalbookstore-32ed4.firebaseapp.com",
+  databaseURL:       "https://digitalbookstore-32ed4-default-rtdb.firebaseio.com",
+  projectId:         "digitalbookstore-32ed4",
+  storageBucket:     "digitalbookstore-32ed4.firebasestorage.app",
+  messagingSenderId: "701831474481",
+  appId:             "1:701831474481:web:41554b05401f6ee4b3d410",
+};
+// ────────────────────────────────────────────────────────────────────────────
+
+const FB_ON = !!(FIREBASE_CONFIG.databaseURL && FIREBASE_CONFIG.databaseURL.includes("firebaseio.com"));
+let fireDB = null;
+if (FB_ON) {
+  try { firebase.initializeApp(FIREBASE_CONFIG); fireDB = firebase.database(); } catch(e) {}
+}
+
+const DB_STORE = {
+  listen(key, cb) {
+    if (fireDB) {
+      const ref = fireDB.ref(key);
+      ref.on('value', snap => cb(snap.val()));
+      return () => ref.off('value');
+    }
+    try { const s = localStorage.getItem(key); if(s) cb(JSON.parse(s)); } catch {}
+    return () => {};
+  }
+};
+</script>
+
 <script type="text/babel">
 const { useState, useEffect } = React;
 
@@ -117,54 +153,46 @@ const CAT_COLORS = {"Business":"#C9A84C","Design":"#7C9FB0","Self-Help":"#B8A9C9
 const COVER_COLORS = ["#C9A84C","#7C9FB0","#B8A9C9","#4CAF82","#E86B4F","#F4A261","#A78BFA","#34D399","#F472B6","#FB923C","#FBBF24","#67E8F9"];
 const COVER_BGS   = ["#1a1208","#080e12","#0d0a14","#060f0a","#140800","#140900","#0d0814","#030f13","#14020d","#120600","#120e00","#030f13"];
 
-const getLiveBooks = () => {
-  try {
-    const s = localStorage.getItem('dbs_books');
-    if (!s) return BOOKS;
-    const adminBooks = JSON.parse(s);
-    return adminBooks
-      .filter(ab => ab.status !== 'Inactive')
-      .map((ab, idx) => {
-        const storeBook = BOOKS.find(b => b.id === ab.id);
-        if (storeBook) return { ...storeBook, ...ab, price: parseFloat(ab.price) || storeBook.price };
-        const ci = idx % COVER_COLORS.length;
-        const initials = ab.title.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
-        return {
-          cover: initials,
-          color: COVER_COLORS[ci],
-          bg: COVER_BGS[ci],
-          originalPrice: ab.originalPrice || parseFloat((ab.price * 1.8).toFixed(2)),
-          description: ab.description || `A premium eBook on ${ab.category}. Instant PDF + EPUB download after purchase.`,
-          pages: ab.pages || 220,
-          format: 'PDF + EPUB',
-          bestseller: false,
-          featured: false,
-          reviews: ab.sales || 0,
-          rating: ab.rating || 4.7,
-          toc: [],
-          benefits: ["Instant download after purchase","PDF + EPUB included","Lifetime access","30-day money back"],
-          ...ab,
-          price: parseFloat(ab.price) || 9.99,
-        };
-      });
-  } catch(e) { return BOOKS; }
+// ── Process admin books data for store display ──
+const processBooks = (adminBooks) => {
+  if (!adminBooks) return BOOKS;
+  const arr = Array.isArray(adminBooks) ? adminBooks : Object.values(adminBooks);
+  return arr
+    .filter(ab => ab.status !== 'Inactive')
+    .map((ab, idx) => {
+      const storeBook = BOOKS.find(b => b.id === ab.id);
+      if (storeBook) return { ...storeBook, ...ab, price: parseFloat(ab.price) || storeBook.price };
+      const ci = idx % COVER_COLORS.length;
+      const initials = ab.title.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+      return {
+        cover: initials,
+        color: COVER_COLORS[ci],
+        bg: COVER_BGS[ci],
+        originalPrice: ab.originalPrice || parseFloat((ab.price * 1.8).toFixed(2)),
+        description: ab.description || `A premium eBook on ${ab.category}. Instant PDF + EPUB download after purchase.`,
+        pages: ab.pages || 220,
+        format: 'PDF + EPUB',
+        bestseller: false,
+        featured: false,
+        reviews: ab.sales || 0,
+        rating: parseFloat(ab.rating) || 4.7,
+        toc: [],
+        benefits: ["Instant download after purchase","PDF + EPUB included","Lifetime access","30-day money back"],
+        ...ab,
+        price: parseFloat(ab.price) || 9.99,
+      };
+    });
 };
-
-const getLiveCats = () => {
-  try {
-    const s = localStorage.getItem('dbs_cats');
-    if (!s) return CATEGORIES;
-    return JSON.parse(s).map(c => ({
-      name: c.name,
-      icon: CAT_ICONS[c.name] || '📚',
-      count: c.books || 0,
-      color: CAT_COLORS[c.name] || '#C9A84C',
-    }));
-  } catch(e) { return CATEGORIES; }
+const processCats = (adminCats) => {
+  if (!adminCats) return CATEGORIES;
+  const arr = Array.isArray(adminCats) ? adminCats : Object.values(adminCats);
+  return arr.map(c => ({
+    name: c.name,
+    icon: CAT_ICONS[c.name] || '📚',
+    count: c.books || 0,
+    color: CAT_COLORS[c.name] || '#C9A84C',
+  }));
 };
-
-const LIVE_BOOKS = getLiveBooks();
-const LIVE_CATS  = getLiveCats();
 
 const GlobalStyles = ({ dark }) => (
   <style>{`
@@ -277,10 +305,17 @@ const Stars = ({ rating, size=13 }) => (
 const BookCover = ({ book, size="md" }) => {
   const sizes = { sm:{w:80,h:110,fs:18,sub:11}, md:{w:140,h:195,fs:28,sub:13}, lg:{w:220,h:305,fs:42,sub:16}, xl:{w:280,h:390,fs:52,sub:18} };
   const s = sizes[size];
-  // Check for uploaded cover image in localStorage
-  const imgKey = 'dbs_cover_' + book.id;
-  let coverImg = null;
-  try { coverImg = localStorage.getItem(imgKey); } catch(e) {}
+  const [coverImg, setCoverImg] = React.useState(book.coverUrl || null);
+  React.useEffect(() => {
+    // Check Firebase DB first, then localStorage fallback
+    if (fireDB) {
+      fireDB.ref('dbs_covers/' + book.id).once('value')
+        .then(snap => { if (snap.val()) setCoverImg(snap.val()); })
+        .catch(() => {});
+    } else {
+      try { const v = localStorage.getItem('dbs_cover_' + book.id); if (v) setCoverImg(v); } catch {}
+    }
+  }, [book.id]);
   if (coverImg) {
     return (
       <div style={{width:s.w,height:s.h,borderRadius:10,flexShrink:0,overflow:"hidden",boxShadow:`4px 6px 20px rgba(0,0,0,0.4)`}}>
@@ -298,8 +333,9 @@ const BookCover = ({ book, size="md" }) => {
   );
 };
 
-const Nav = ({ page, setPage, dark, setDark, cart, user, setUser }) => {
+const Nav = ({ page, setPage, dark, setDark, cart, user, onLogout }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userMenu, setUserMenu] = useState(false);
   const NAV_LINKS = [["home","Home"],["store","Store"],["blog","Blog"],["faq","FAQ"],["contact","Contact"]];
   return (
     <nav style={{position:"sticky",top:0,zIndex:1000,background:dark?"rgba(10,10,11,0.92)":"rgba(250,249,247,0.92)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",borderBottom:"1px solid var(--border)",boxShadow:dark?"0 1px 0 rgba(255,255,255,0.04)":"0 1px 0 rgba(0,0,0,0.06)"}}>
@@ -328,7 +364,28 @@ const Nav = ({ page, setPage, dark, setDark, cart, user, setUser }) => {
           <button onClick={()=>setPage("checkout")} className="nav-icon-btn" title="Cart">
             🛒{cart.length>0&&<span className="nav-cart-badge">{cart.length}</span>}
           </button>
-          <button onClick={()=>setPage(user?"dashboard":"auth")} className="nav-icon-btn" title={user?"Dashboard":"Sign In"}>👤</button>
+          {/* User menu */}
+          <div style={{position:"relative"}}>
+            <button onClick={()=>setUserMenu(m=>!m)} className="nav-icon-btn" title={user?"My Account":"Sign In"}
+              style={{display:"flex",alignItems:"center",gap:5,padding:"8px 10px"}}>
+              {user
+                ? <><div style={{width:26,height:26,borderRadius:"50%",background:"linear-gradient(135deg,var(--gold),#e8c96a)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#0a0807"}}>{user.name?user.name[0].toUpperCase():"U"}</div><span style={{fontSize:12,fontWeight:600,color:"var(--gold)",maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name}</span></>
+                : <>👤</>
+              }
+            </button>
+            {userMenu&&(
+              <div style={{position:"absolute",right:0,top:"calc(100% + 8px)",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:8,minWidth:160,boxShadow:"var(--shadow-lg)",zIndex:999}} onClick={()=>setUserMenu(false)}>
+                {user ? <>
+                  <div style={{padding:"8px 12px",fontSize:12,color:"var(--text3)",borderBottom:"1px solid var(--border)",marginBottom:4}}>{user.email}</div>
+                  <button className="nav-link" style={{width:"100%",textAlign:"left",padding:"9px 12px"}} onClick={()=>setPage("dashboard")}>📚 My Library</button>
+                  <button className="nav-link" style={{width:"100%",textAlign:"left",padding:"9px 12px",color:"#ff6b6b"}} onClick={onLogout}>🚪 Logout</button>
+                </> : <>
+                  <button className="nav-link" style={{width:"100%",textAlign:"left",padding:"9px 12px"}} onClick={()=>setPage("auth")}>🔑 Login</button>
+                  <button className="nav-link" style={{width:"100%",textAlign:"left",padding:"9px 12px"}} onClick={()=>setPage("auth")}>✏️ Sign Up</button>
+                </>}
+              </div>
+            )}
+          </div>
           <div className="nav-divider"/>
           <button onClick={()=>setPage("store")} className="nav-shop-btn">🛍️ Shop Now</button>
         </div>
@@ -365,10 +422,10 @@ const Nav = ({ page, setPage, dark, setDark, cart, user, setUser }) => {
     </nav>
   );
 };
-const HomePage = ({ setPage, setSelectedBook, cart, setCart }) => {
+const HomePage = ({ setPage, setSelectedBook, cart, setCart, liveBooks, liveCats }) => {
   const [email, setEmail] = useState("");
   const [subbed, setSubbed] = useState(false);
-  const featured = LIVE_BOOKS.filter(b=>b.featured);
+  const featured = liveBooks.filter(b=>b.featured);
   return (
     <div>
       <section style={{padding:"80px 24px 100px",background:"var(--bg)",position:"relative",overflow:"hidden"}}>
@@ -416,7 +473,7 @@ const HomePage = ({ setPage, setSelectedBook, cart, setCart }) => {
             <button className="btn-outline" style={{padding:"10px 20px",fontSize:13}} onClick={()=>setPage("store")}>View All →</button>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:24}} className="book-grid">
-            {LIVE_BOOKS.map(book=>(
+            {liveBooks.map(book=>(
               <div key={book.id} className="card fade-in" style={{padding:20,cursor:"pointer",transition:"transform .2s,box-shadow .2s"}} onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-4px)";e.currentTarget.style.boxShadow="var(--shadow-lg)"}} onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow=""}} onClick={()=>{setSelectedBook(book);setPage("book");}}>
                 <div style={{display:"flex",gap:16,marginBottom:16}}>
                   <BookCover book={book} size="sm"/>
@@ -444,7 +501,7 @@ const HomePage = ({ setPage, setSelectedBook, cart, setCart }) => {
             <h2 className="playfair" style={{fontSize:"clamp(28px,3vw,42px)",fontWeight:700}}>Browse by Genre</h2>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:16}} className="cat-grid">
-            {LIVE_CATS.map(cat=>(
+            {liveCats.map(cat=>(
               <div key={cat.name} className="card" style={{padding:"24px 16px",textAlign:"center",cursor:"pointer",transition:"all .2s"}} onMouseEnter={e=>{e.currentTarget.style.borderColor=cat.color;e.currentTarget.style.background=`${cat.color}11`;e.currentTarget.style.transform="translateY(-3px)"}} onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border)";e.currentTarget.style.background="var(--surface)";e.currentTarget.style.transform=""}} onClick={()=>setPage("store")}>
                 <div style={{fontSize:32,marginBottom:10}}>{cat.icon}</div>
                 <div style={{fontWeight:600,fontSize:14,marginBottom:4}}>{cat.name}</div>
@@ -520,18 +577,21 @@ const HomePage = ({ setPage, setSelectedBook, cart, setCart }) => {
         </div>
         <div style={{maxWidth:1280,margin:"24px auto 0",paddingTop:20,borderTop:"1px solid var(--border)",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
           <span style={{fontSize:12,color:"var(--text3)"}}>© 2025 DigitalBookStore. All rights reserved.</span>
-          <div style={{display:"flex",gap:16}}>{["🔒 SSL Secured","💳 Secure Payments","📱 All Devices"].map(t=><span key={t} style={{fontSize:12,color:"var(--text3)"}}>{t}</span>)}</div>
+          <div style={{display:"flex",gap:16,alignItems:"center"}}>
+            {["🔒 SSL Secured","💳 Secure Payments","📱 All Devices"].map(t=><span key={t} style={{fontSize:12,color:"var(--text3)"}}>{t}</span>)}
+            <a href="admin.html" title="Admin Panel" style={{fontSize:11,color:"var(--text3)",opacity:0.4,textDecoration:"none",marginLeft:8,transition:"opacity .2s"}} onMouseEnter={e=>e.currentTarget.style.opacity="1"} onMouseLeave={e=>e.currentTarget.style.opacity="0.4"}>⚙️ Admin</a>
+          </div>
         </div>
       </footer>
     </div>
   );
 };
 
-const StorePage = ({ setPage, setSelectedBook, cart, setCart }) => {
+const StorePage = ({ setPage, setSelectedBook, cart, setCart, liveBooks, liveCats, user, requireLogin }) => {
   const [search, setSearch] = useState("");
   const [cat, setCat] = useState("All");
   const [sort, setSort] = useState("popular");
-  const filtered = LIVE_BOOKS.filter(b=>(cat==="All"||b.category===cat)&&(b.title.toLowerCase().includes(search.toLowerCase())||b.author.toLowerCase().includes(search.toLowerCase()))).sort((a,b)=>sort==="price-asc"?a.price-b.price:sort==="price-desc"?b.price-a.price:sort==="rating"?b.rating-a.rating:b.reviews-a.reviews);
+  const filtered = liveBooks.filter(b=>(cat==="All"||b.category===cat)&&(b.title.toLowerCase().includes(search.toLowerCase())||b.author.toLowerCase().includes(search.toLowerCase()))).sort((a,b)=>sort==="price-asc"?a.price-b.price:sort==="price-desc"?b.price-a.price:sort==="rating"?b.rating-a.rating:b.reviews-a.reviews);
   return (
     <div style={{maxWidth:1280,margin:"0 auto",padding:"40px 24px"}}>
       <div style={{marginBottom:40}}><h1 className="playfair" style={{fontSize:"clamp(28px,3vw,44px)",fontWeight:700,marginBottom:8}}>eBook Library</h1><p style={{color:"var(--text2)"}}>Browse our curated collection of premium digital books</p></div>
@@ -549,7 +609,7 @@ const StorePage = ({ setPage, setSelectedBook, cart, setCart }) => {
         </div>
         {/* Category filters — horizontal scroll on mobile */}
         <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch",scrollbarWidth:"none",msOverflowStyle:"none",marginBottom:12}}>
-          {["All",...LIVE_CATS.map(c=>c.name)].map(c=>(
+          {["All",...liveCats.map(c=>c.name)].map(c=>(
             <button key={c} onClick={()=>setCat(c)} style={{padding:"8px 16px",borderRadius:20,fontSize:13,border:`1px solid ${cat===c?"var(--gold)":"var(--border)"}`,background:cat===c?"rgba(201,168,76,0.15)":"var(--surface2)",color:cat===c?"var(--gold)":"var(--text2)",cursor:"pointer",fontFamily:"DM Sans",whiteSpace:"nowrap",flexShrink:0,fontWeight:cat===c?600:400}}>{c}</button>
           ))}
         </div>
@@ -579,7 +639,7 @@ const StorePage = ({ setPage, setSelectedBook, cart, setCart }) => {
               <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:16}}><span className="star"><Stars rating={book.rating} size={12}/></span><span style={{fontSize:12,fontWeight:600}}>{book.rating}</span><span style={{fontSize:12,color:"var(--text3)"}}>({book.reviews.toLocaleString()} reviews)</span></div>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                 <div><span style={{fontSize:20,fontWeight:700,color:"var(--gold)",fontFamily:"DM Mono"}}>${book.price}</span><span style={{fontSize:13,color:"var(--text3)",textDecoration:"line-through",marginLeft:8}}>${book.originalPrice}</span></div>
-                <button className="btn-gold" style={{padding:"9px 16px",fontSize:13}} onClick={()=>{if(!cart.find(c=>c.id===book.id))setCart([...cart,book]);}}>{cart.find(c=>c.id===book.id)?"✓ In Cart":"Buy Now"}</button>
+                <button className="btn-gold" style={{padding:"9px 16px",fontSize:13}} onClick={()=>{if(!cart.find(c=>c.id===book.id))setCart([...cart,book]);requireLogin("checkout");}}>{cart.find(c=>c.id===book.id)?"✓ In Cart":"Buy Now"}</button>
               </div>
             </div>
           </div>
@@ -589,7 +649,7 @@ const StorePage = ({ setPage, setSelectedBook, cart, setCart }) => {
   );
 };
 
-const BookPage = ({ book, setPage, cart, setCart }) => {
+const BookPage = ({ book, setPage, cart, setCart, user, requireLogin }) => {
   const [tab, setTab] = useState("description");
   return (
     <div style={{maxWidth:1280,margin:"0 auto",padding:"40px 24px"}}>
@@ -599,7 +659,7 @@ const BookPage = ({ book, setPage, cart, setCart }) => {
           <div style={{position:"sticky",top:80,textAlign:"center"}}>
             <div style={{display:"inline-block",animation:"float 5s ease-in-out infinite",filter:"drop-shadow(0 24px 48px rgba(0,0,0,0.4))",marginBottom:28}}><BookCover book={book} size="xl"/></div>
             <div style={{display:"grid",gap:10}}>
-              <button className="btn-gold" style={{padding:"14px",fontSize:15,width:"100%",animation:"pulse 2s infinite"}} onClick={()=>{if(!cart.find(c=>c.id===book.id))setCart([...cart,book]);setPage("checkout");}}>🛒 Buy Now — ${book.price}</button>
+              <button className="btn-gold" style={{padding:"14px",fontSize:15,width:"100%",animation:"pulse 2s infinite"}} onClick={()=>{if(!cart.find(c=>c.id===book.id))setCart([...cart,book]);requireLogin("checkout");}}>🛒 Buy Now — ${book.price}</button>
               <button className="btn-outline" style={{padding:"12px",fontSize:14,width:"100%"}} onClick={()=>{if(!cart.find(c=>c.id===book.id))setCart([...cart,book]);}}>{cart.find(c=>c.id===book.id)?"✓ Added to Cart":"+ Add to Cart"}</button>
             </div>
             <div style={{marginTop:20,padding:16,background:"var(--surface2)",borderRadius:12,border:"1px solid var(--border)"}}>
@@ -638,11 +698,49 @@ const BookPage = ({ book, setPage, cart, setCart }) => {
   );
 };
 
+const PdfDownloadBtn = ({ book }) => {
+  const [status, setStatus] = useState("idle"); // idle | loading | ready | none
+  const [pdfData, setPdfData] = useState(null);
+  const [pdfName, setPdfName] = useState("book.pdf");
+
+  const fetchAndDownload = async () => {
+    setStatus("loading");
+    try {
+      let data = null, fname = book.title+".pdf";
+      if (fireDB) {
+        const snap = await fireDB.ref('dbs_pdfs/' + book.id).once('value');
+        const val = snap.val();
+        if (val && val.data) { data = val.data; fname = val.name || fname; }
+      }
+      if (!data) {
+        try { data = localStorage.getItem('dbs_pdf_'+book.id); fname = localStorage.getItem('dbs_pdfname_'+book.id) || fname; } catch {}
+      }
+      if (!data) { setStatus("none"); return; }
+      setPdfData(data); setPdfName(fname); setStatus("ready");
+      // Auto-trigger download
+      const a = document.createElement('a');
+      a.href = data; a.download = fname; a.click();
+    } catch(e) { setStatus("none"); }
+  };
+
+  if (status === "none") return <div style={{fontSize:12,color:"var(--text3)",padding:"8px 0"}}>⚠️ PDF abhi upload nahi hua — email pe bheja jayega</div>;
+  if (status === "ready") return (
+    <button className="btn-gold" style={{padding:"10px 18px",fontSize:13,display:"flex",alignItems:"center",gap:6}} onClick={()=>{const a=document.createElement('a');a.href=pdfData;a.download=pdfName;a.click();}}>
+      ⬇ Download PDF — {book.title}
+    </button>
+  );
+  return (
+    <button className="btn-gold" style={{padding:"10px 18px",fontSize:13,opacity:status==="loading"?0.7:1,display:"flex",alignItems:"center",gap:6}} onClick={fetchAndDownload} disabled={status==="loading"}>
+      {status==="loading"?"⏳ Loading PDF...":"⬇ Download PDF — "+book.title}
+    </button>
+  );
+};
+
 const ThankYouPage = ({ setPage, books, payMethod }) => {
   const isManual = payMethod === "upi" || payMethod === "crypto";
+  const booksArr = books && books.length > 0 ? books : [];
   return (
   <div style={{maxWidth:680,margin:"50px auto",padding:"0 20px"}}>
-    {/* Success Icon */}
     <div style={{textAlign:"center",marginBottom:32}}>
       <div style={{width:90,height:90,background:isManual?"rgba(247,147,26,0.15)":"rgba(76,175,130,0.15)",border:`3px solid ${isManual?"#F7931A":"#4CAF82"}`,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:44,margin:"0 auto 20px",animation:"pulse 2s infinite"}}>
         {isManual?"⏳":"✅"}
@@ -652,30 +750,38 @@ const ThankYouPage = ({ setPage, books, payMethod }) => {
       </h1>
       <p style={{color:"var(--text2)",fontSize:15,maxWidth:480,margin:"0 auto"}}>
         {isManual
-          ? "Thank you for your order! Please complete your payment and we'll send your eBook within a few hours."
-          : "Your payment was processed successfully. Your eBooks are ready!"}
+          ? "Shukriya! Payment complete karo — hum aapka eBook kuch ghanton mein bhejenge."
+          : "Payment successful! Apni eBooks neeche se download karo."}
       </p>
     </div>
 
-    {/* Status Card */}
+    {/* ── DOWNLOAD SECTION (PayPal only — instant) ── */}
+    {!isManual && booksArr.length > 0 && (
+      <div style={{background:"rgba(76,175,130,0.07)",border:"2px solid rgba(76,175,130,0.3)",borderRadius:16,padding:24,marginBottom:24}}>
+        <h3 style={{fontWeight:700,marginBottom:6,fontSize:17,color:"var(--green)"}}>📥 Apni eBooks Download Karo</h3>
+        <p style={{fontSize:13,color:"var(--text2)",marginBottom:16}}>Neeche diye button se PDF download karo — yeh links sirf aapke liye hain.</p>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {booksArr.map(b => <PdfDownloadBtn key={b.id} book={b}/>)}
+        </div>
+      </div>
+    )}
+
+    {/* ── MANUAL PAYMENT STEPS ── */}
     {isManual&&(
       <div style={{background:"rgba(247,147,26,0.07)",border:"1px solid rgba(247,147,26,0.25)",borderRadius:14,padding:20,marginBottom:20}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
           <div style={{fontSize:24}}>📋</div>
-          <div style={{fontWeight:700,fontSize:15}}>What Happens Next?</div>
+          <div style={{fontWeight:700,fontSize:15}}>Aage Kya Hoga?</div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {[
-            ["1","💳","Complete your payment","Send the exact amount via UPI or BTC"],
-            ["2","📧","We verify your payment","Usually within 1–4 hours"],
-            ["3","📚","eBook sent to your email","Download link will be emailed to you"],
+            ["1","💳","Payment complete karo","UPI ya BTC se exact amount bhejo"],
+            ["2","📧","Hum payment verify karenge","1–4 ghanton mein"],
+            ["3","📚","eBook aapki email pe aayegi","Download link email pe bheja jayega"],
           ].map(([n,ic,title,sub])=>(
             <div key={n} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"10px 12px",background:"var(--surface2)",borderRadius:10}}>
               <div style={{width:28,height:28,background:"rgba(247,147,26,0.2)",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#F7931A",flexShrink:0}}>{n}</div>
-              <div>
-                <div style={{fontWeight:600,fontSize:13,marginBottom:2}}>{ic} {title}</div>
-                <div style={{fontSize:12,color:"var(--text3)"}}>{sub}</div>
-              </div>
+              <div><div style={{fontWeight:600,fontSize:13,marginBottom:2}}>{ic} {title}</div><div style={{fontSize:12,color:"var(--text3)"}}>{sub}</div></div>
             </div>
           ))}
         </div>
@@ -683,38 +789,38 @@ const ThankYouPage = ({ setPage, books, payMethod }) => {
     )}
 
     {/* Order Details */}
-    <div className="card" style={{padding:24,marginBottom:20}}>
-      <h3 style={{fontWeight:700,marginBottom:16,fontSize:15}}>📦 Order Details</h3>
-      {(books&&books.length>0?books:[BOOKS[0]]).map(b=>(
-        <div key={b.id} style={{display:"flex",gap:14,alignItems:"center",padding:"12px 0",borderBottom:"1px solid var(--border)"}}>
-          <BookCover book={b} size="sm"/>
-          <div style={{flex:1}}>
-            <div style={{fontWeight:600,marginBottom:2,fontSize:14}}>{b.title}</div>
-            <div style={{fontSize:12,color:"var(--text3)"}}>{b.format} • {b.pages} pages</div>
+    {booksArr.length > 0 && (
+      <div className="card" style={{padding:24,marginBottom:20}}>
+        <h3 style={{fontWeight:700,marginBottom:16,fontSize:15}}>📦 Order Details</h3>
+        {booksArr.map(b=>(
+          <div key={b.id} style={{display:"flex",gap:14,alignItems:"center",padding:"12px 0",borderBottom:"1px solid var(--border)"}}>
+            <BookCover book={b} size="sm"/>
+            <div style={{flex:1}}>
+              <div style={{fontWeight:600,marginBottom:2,fontSize:14}}>{b.title}</div>
+              <div style={{fontSize:12,color:"var(--text3)"}}>{b.format||"PDF"} • {b.pages} pages</div>
+            </div>
+            <div style={{fontSize:15,fontWeight:700,color:"var(--gold)",fontFamily:"DM Mono"}}>${b.price}</div>
           </div>
-          <div style={{fontSize:15,fontWeight:700,color:"var(--gold)",fontFamily:"DM Mono"}}>${b.price}</div>
+        ))}
+        <div style={{paddingTop:14,marginTop:4,display:"flex",justifyContent:"flex-end",alignItems:"center",gap:8}}>
+          <span style={{fontSize:13,color:"var(--text2)"}}>Total Paid:</span>
+          <span style={{fontSize:18,fontWeight:700,color:"var(--gold)",fontFamily:"DM Mono"}}>${booksArr.reduce((s,b)=>s+b.price,0).toFixed(2)}</span>
         </div>
-      ))}
-      <div style={{paddingTop:14,marginTop:4,display:"flex",justifyContent:"flex-end",alignItems:"center",gap:8}}>
-        <span style={{fontSize:13,color:"var(--text2)"}}>Total Paid:</span>
-        <span style={{fontSize:18,fontWeight:700,color:"var(--gold)",fontFamily:"DM Mono"}}>${(books&&books.length>0?books.reduce((s,b)=>s+b.price,0):0).toFixed(2)}</span>
       </div>
-    </div>
+    )}
 
-    {/* Notice */}
     <div style={{background:"rgba(76,175,130,0.07)",border:"1px solid rgba(76,175,130,0.2)",borderRadius:12,padding:"14px 18px",marginBottom:24,display:"flex",gap:10,alignItems:"flex-start"}}>
       <div style={{fontSize:20,flexShrink:0}}>📧</div>
       <div style={{fontSize:13,color:"var(--text2)",lineHeight:1.6}}>
         {isManual
-          ? <span>Your eBook will be sent to your email once payment is confirmed. Check spam folder if not received.</span>
-          : <span>A confirmation has been sent to your email. Your downloads are ready in your library.</span>}
+          ? "Payment confirm hone ke baad eBook aapki email pe bhejenge. Spam folder bhi check karo."
+          : "Order confirmation aapki email pe bhej diya gaya hai. Downloads aapki library mein bhi hain."}
       </div>
     </div>
 
-    {/* Buttons */}
     <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
       <button className="btn-gold" style={{flex:1,padding:"13px 20px",fontSize:14,minWidth:140}} onClick={()=>setPage("store")}>🛍️ Continue Shopping</button>
-      <button className="btn-outline" style={{flex:1,padding:"13px 20px",fontSize:14,minWidth:140}} onClick={()=>setPage("home")}>🏠 Back to Home</button>
+      <button className="btn-outline" style={{flex:1,padding:"13px 20px",fontSize:14,minWidth:140}} onClick={()=>setPage("dashboard")}>📚 My Library</button>
     </div>
   </div>
   );
@@ -723,7 +829,6 @@ const ThankYouPage = ({ setPage, books, payMethod }) => {
 
 const saveOrderToAdmin = (cart, name1, name2, email, method, finalAmt, txnId) => {
   try {
-    const existing = JSON.parse(localStorage.getItem('dbs_orders') || '[]');
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
     const timeStr = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
@@ -743,9 +848,20 @@ const saveOrderToAdmin = (cart, name1, name2, email, method, finalAmt, txnId) =>
       books: cart.length,
       txnId: txnId || '',
     };
-    const updated = [newOrder, ...existing];
-    localStorage.setItem('dbs_orders', JSON.stringify(updated));
-
+    // Save to localStorage as fallback
+    try {
+      const existing = JSON.parse(localStorage.getItem('dbs_orders') || '[]');
+      localStorage.setItem('dbs_orders', JSON.stringify([newOrder, ...existing]));
+    } catch {}
+    // Save to Firebase (real-time, cross-browser)
+    if (fireDB) {
+      fireDB.ref('dbs_orders').once('value').then(snap => {
+        let orders = snap.val();
+        let arr = orders ? (Array.isArray(orders) ? orders : Object.values(orders)) : [];
+        arr = [newOrder, ...arr];
+        fireDB.ref('dbs_orders').set(arr);
+      });
+    }
     // ── Send Email Notification via EmailJS ──
     try {
       emailjs.send("service_z65jsrk", "gwosq2o", {
@@ -761,7 +877,6 @@ const saveOrderToAdmin = (cart, name1, name2, email, method, finalAmt, txnId) =>
         email:           email || 'N/A',
       });
     } catch(emailErr) { console.warn('Email notification failed:', emailErr); }
-
   } catch(e) { console.error('Order save failed:', e); }
 };
 const PAYMENT_INFO = {
@@ -770,7 +885,9 @@ const PAYMENT_INFO = {
   btc: "1Gi8CV7iUvbkPeZ1LX3TzEZY3AZv2MBeaM",
   upi: "dcsystem77@axl",
 };
-const CheckoutPage = ({ cart, setCart, setPage }) => {
+const CheckoutPage = ({ cart, setCart, setPage, user, requireLogin }) => {
+  useEffect(()=>{ if(!user) requireLogin("checkout"); },[]);
+  if (!user) return <div style={{textAlign:"center",padding:80}}><div style={{fontSize:48,marginBottom:16}}>🔒</div><h2 className="playfair" style={{marginBottom:12}}>Login Required</h2><p style={{color:"var(--text2)",marginBottom:24}}>Checkout ke liye pehle login karo</p><button className="btn-gold" style={{padding:"12px 28px"}} onClick={()=>requireLogin("checkout")}>Login / Sign Up</button></div>;
   const [method, setMethod] = useState("paypal");
   const [coupon, setCoupon] = useState("");
   const [couponApplied, setCouponApplied] = useState(false);
@@ -1084,123 +1201,86 @@ const CheckoutPage = ({ cart, setCart, setPage }) => {
   );
 };
 
-const AuthPage = ({ setPage, setUser }) => {
-  const [mode, setMode] = React.useState("login");
-  const [name, setName] = React.useState("");
-  const [email, setEmail] = React.useState("");
-  const [pass, setPass] = React.useState("");
-  const [err, setErr] = React.useState("");
+const AuthPage = ({ setPage, setUser, redirectTo="dashboard" }) => {
+  const [mode, setMode] = useState("login");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [pass, setPass] = useState("");
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleGoogle = () => {
-    // Load Google GSI library then redirect
-    var gsiUrl = "https://accounts.google.com/o/oauth2/v2/auth";
-    var params = "client_id=866736580262-k78q7vr9e3v40n4ll18bae9jt9b8l604.apps.googleusercontent.com";
-    params += "&redirect_uri=" + encodeURIComponent("https://alltools7com-glitch.github.io/DigitalBookStore/");
-    params += "&response_type=token&scope=email%20profile";
-    window.location.href = gsiUrl + "?" + params;
-  };
+  const emailKey = e => e.toLowerCase().replace(/[.#$[\]]/g,"_");
 
-  const handleEmail = () => {
-    if(!email.trim() || !email.includes("@")){ setErr("Valid email likhein."); return; }
-    if(mode === "register" && !name.trim()){ setErr("Naam likhein."); return; }
-    if(!pass || pass.length < 4){ setErr("Password 4+ characters ka ho."); return; }
-    setErr("");
+  const doAuth = async () => {
+    setErr(""); setLoading(true);
+    if (!email || !pass) { setErr("Email aur password zaroori hai"); setLoading(false); return; }
+    if (mode==="register" && !name) { setErr("Apna naam likho"); setLoading(false); return; }
+    if (pass.length < 6) { setErr("Password kam se kam 6 characters ka hona chahiye"); setLoading(false); return; }
+
+    const key = emailKey(email);
     try {
-      var users = JSON.parse(localStorage.getItem("dbs_users") || "[]");
-      if(mode === "register"){
-        if(users.find(function(u){ return u.email === email; })){ setErr("Email already registered hai."); return; }
-        var newUser = {name: name, email: email, pass: pass};
-        users.push(newUser);
-        localStorage.setItem("dbs_users", JSON.stringify(users));
-        setUser({name: name, email: email});
-        setPage("home");
+      if (mode === "register") {
+        // Check if user already exists
+        let existing = null;
+        if (fireDB) {
+          const snap = await fireDB.ref('dbs_users/' + key).once('value');
+          existing = snap.val();
+        } else {
+          try { existing = JSON.parse(localStorage.getItem('dbs_user_'+key)); } catch {}
+        }
+        if (existing) { setErr("Yeh email pehle se registered hai! Login karo."); setLoading(false); return; }
+        const userData = { name, email: email.toLowerCase(), pass, createdAt: Date.now() };
+        if (fireDB) await fireDB.ref('dbs_users/' + key).set(userData);
+        else { try { localStorage.setItem('dbs_user_'+key, JSON.stringify(userData)); } catch {} }
+        const sessionUser = { name, email: email.toLowerCase() };
+        try { localStorage.setItem('dbs_session', JSON.stringify(sessionUser)); } catch {}
+        setUser(sessionUser);
+        setPage(redirectTo);
       } else {
-        var found = users.find(function(u){ return u.email === email && u.pass === pass; });
-        if(!found){ setErr("Email ya password galat hai."); return; }
-        setUser({name: found.name, email: email});
-        setPage("home");
+        // Login
+        let userData = null;
+        if (fireDB) {
+          const snap = await fireDB.ref('dbs_users/' + key).once('value');
+          userData = snap.val();
+        } else {
+          try { userData = JSON.parse(localStorage.getItem('dbs_user_'+key)); } catch {}
+        }
+        if (!userData) { setErr("Email registered nahi hai. Pehle sign up karo."); setLoading(false); return; }
+        if (userData.pass !== pass) { setErr("Password galat hai!"); setLoading(false); return; }
+        const sessionUser = { name: userData.name, email: userData.email };
+        try { localStorage.setItem('dbs_session', JSON.stringify(sessionUser)); } catch {}
+        setUser(sessionUser);
+        setPage(redirectTo);
       }
-    } catch(e){ setErr("Error aaya. Dobara try karo."); }
-  };
-
-  const handleGuest = () => {
-    setUser({name: "Guest", email: ""});
-    setPage("store");
+    } catch(e) { setErr("Kuch problem aayi: " + e.message); }
+    setLoading(false);
   };
 
   return (
-    <div style={{maxWidth:420,margin:"48px auto",padding:"0 20px"}}>
-      <div style={{textAlign:"center",marginBottom:28}}>
-        <div style={{fontSize:44,marginBottom:10}}>📚</div>
-        <h1 className="playfair" style={{fontSize:30,fontWeight:700,marginBottom:6}}>
-          {mode === "login" ? "Welcome Back" : "Create Account"}
-        </h1>
-        <p style={{color:"var(--text2)",fontSize:14}}>
-          {mode === "login" ? "Sign in to your library" : "Join thousands of readers"}
-        </p>
+    <div style={{maxWidth:440,margin:"60px auto",padding:"0 24px"}}>
+      <div style={{textAlign:"center",marginBottom:32}}>
+        <div style={{fontSize:40,marginBottom:12}}>📚</div>
+        <h1 className="playfair" style={{fontSize:32,fontWeight:700,marginBottom:8}}>{mode==="login"?"Welcome Back":"Create Account"}</h1>
+        <p style={{color:"var(--text2)",fontSize:14}}>{mode==="login"?"Sign in to access your library":"Join 12,000+ readers today"}</p>
+        {redirectTo==="checkout"&&<div style={{marginTop:12,padding:"10px 16px",background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.3)",borderRadius:10,fontSize:13,color:"var(--gold)"}}>🔒 Checkout ke liye pehle login zaroori hai</div>}
       </div>
-
-      <div className="card" style={{padding:28}}>
-
-        <div style={{display:"grid",gap:10,marginBottom:20}}>
-          <button onClick={handleGoogle}
-            style={{width:"100%",padding:"13px",background:"#fff",border:"2px solid #dadce0",borderRadius:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,fontSize:14,fontWeight:700,color:"#3c4043",fontFamily:"DM Sans"}}>
-            <span style={{fontSize:18,background:"linear-gradient(135deg,#4285F4,#34A853,#FBBC05,#EA4335)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",fontWeight:900}}>G</span>
-            Continue with Google
-          </button>
-          <button onClick={()=>setErr("Facebook login ke liye contact karo: alihaidar9007@gmail.com")}
-            style={{width:"100%",padding:"13px",background:"#1877F2",border:"none",borderRadius:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,fontSize:14,fontWeight:700,color:"#fff",fontFamily:"DM Sans"}}>
-            <span style={{fontSize:18,fontWeight:900}}>f</span>
-            Continue with Facebook
-          </button>
-        </div>
-
-        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
-          <div style={{flex:1,height:1,background:"var(--border)"}}/>
-          <span style={{fontSize:12,color:"var(--text3)"}}>ya email se</span>
-          <div style={{flex:1,height:1,background:"var(--border)"}}/>
-        </div>
-
-        {err && <div style={{background:"rgba(224,92,75,.1)",border:"1px solid rgba(224,92,75,.3)",borderRadius:8,padding:"10px 14px",fontSize:13,color:"#e05c4b",marginBottom:12}}>{err}</div>}
-
-        {mode === "register" && (
-          <div style={{marginBottom:14}}>
-            <label>Full Name</label>
-            <input placeholder="Muhammad Ali" value={name} onChange={function(e){setName(e.target.value);setErr("");}}/>
-          </div>
-        )}
-        <div style={{marginBottom:14}}>
-          <label>Email Address</label>
-          <input type="email" placeholder="your@email.com" value={email} onChange={function(e){setEmail(e.target.value);setErr("");}}/>
-        </div>
-        <div style={{marginBottom:18}}>
-          <label>Password</label>
-          <input type="password" placeholder="••••••••" value={pass} onChange={function(e){setPass(e.target.value);setErr("");}}/>
-        </div>
-
-        <button className="btn-gold" style={{width:"100%",padding:"13px",fontSize:15,marginBottom:10}} onClick={handleEmail}>
-          {mode === "login" ? "Sign In →" : "Create Account →"}
+      <div className="card" style={{padding:32}}>
+        {mode==="register"&&<div style={{marginBottom:16}}><label>Full Name *</label><input placeholder="John Doe" value={name} onChange={e=>setName(e.target.value)}/></div>}
+        <div style={{marginBottom:16}}><label>Email *</label><input type="email" placeholder="john@example.com" value={email} onChange={e=>setEmail(e.target.value)}/></div>
+        <div style={{marginBottom:20}}><label>Password *</label><input type="password" placeholder="••••••••" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doAuth()}/></div>
+        {err&&<div style={{marginBottom:14,padding:"10px 14px",background:"rgba(220,53,69,0.1)",border:"1px solid rgba(220,53,69,0.3)",borderRadius:8,fontSize:13,color:"#ff6b6b"}}>⚠️ {err}</div>}
+        <button className="btn-gold" style={{width:"100%",padding:"13px",fontSize:15,marginBottom:16,opacity:loading?0.7:1}} onClick={doAuth} disabled={loading}>
+          {loading?"⏳ Please wait...":mode==="login"?"Sign In →":"Create Account →"}
         </button>
-
-        <button onClick={handleGuest}
-          style={{width:"100%",padding:"11px",background:"transparent",border:"1px dashed var(--border)",borderRadius:10,cursor:"pointer",fontSize:13,color:"var(--text3)",fontFamily:"DM Sans",marginBottom:16}}>
-          👤 Guest ke tor par continue karo
-        </button>
-
-        <div style={{textAlign:"center",fontSize:13}}>
-          {mode === "login"
-            ? <span>Account nahi? <span style={{color:"var(--gold)",cursor:"pointer",fontWeight:600}} onClick={function(){setMode("register");setErr("");}}>Sign up</span></span>
-            : <span>Account hai? <span style={{color:"var(--gold)",cursor:"pointer",fontWeight:600}} onClick={function(){setMode("login");setErr("");}}>Sign in</span></span>
-          }
-        </div>
+        <div style={{textAlign:"center",fontSize:13}}>{mode==="login"?<>Don't have an account? <span style={{color:"var(--gold)",cursor:"pointer",fontWeight:600}} onClick={()=>{setMode("register");setErr("");}}>Sign up free</span></>:<>Already have an account? <span style={{color:"var(--gold)",cursor:"pointer",fontWeight:600}} onClick={()=>{setMode("login");setErr("");}}>Sign in</span></>}</div>
       </div>
     </div>
   );
 };
 
-const DashboardPage = ({ user, setPage }) => {
+const DashboardPage = ({ user, setPage, liveBooks }) => {
   const [tab, setTab] = useState("library");
-  const myBooks = LIVE_BOOKS.slice(0,3);
+  const myBooks = (liveBooks||BOOKS).slice(0,3);
   return (
     <div style={{maxWidth:1100,margin:"0 auto",padding:"40px 24px"}}>
       <div style={{display:"flex",gap:20,marginBottom:32,alignItems:"center"}}>
@@ -1426,31 +1506,72 @@ function App() {
     try{ const s=localStorage.getItem('dbs_theme'); return s!==null ? s==='dark' : true; }catch{ return true; }
   });
   const [cart, setCart] = useState([]);
-  const [selectedBook, setSelectedBook] = useState(LIVE_BOOKS[0]);
-  const [user, setUser] = useState(null);
+  const [liveBooks, setLiveBooks] = useState(BOOKS);
+  const [liveCats,  setLiveCats]  = useState(CATEGORIES);
+  const [selectedBook, setSelectedBook] = useState(BOOKS[0]);
+  const [user, setUser] = useState(()=>{
+    // Restore session on page load
+    try { const s = localStorage.getItem('dbs_session'); return s ? JSON.parse(s) : null; } catch { return null; }
+  });
+  const [afterLogin, setAfterLogin] = useState("dashboard");
+
+  // Login guard: redirects to auth if not logged in
+  const requireLogin = (targetPage) => {
+    if (user) { setPage(targetPage); }
+    else { setAfterLogin(targetPage); setPage("auth"); }
+  };
+
+  const handleSetUser = (u) => {
+    setUser(u);
+    // After login, go to saved target page
+    setPage(afterLogin || "dashboard");
+  };
+
+  const handleLogout = () => {
+    try { localStorage.removeItem('dbs_session'); } catch {}
+    setUser(null);
+    setPage("home");
+  };
+
+  useEffect(()=>{
+    const unsubBooks = DB_STORE.listen('dbs_books', data => {
+      const processed = processBooks(data);
+      setLiveBooks(processed);
+      setSelectedBook(sb => {
+        const found = processed.find(b => b.id === sb?.id);
+        return found || processed[0] || BOOKS[0];
+      });
+    });
+    const unsubCats = DB_STORE.listen('dbs_cats', data => {
+      setLiveCats(processCats(data));
+    });
+    return () => { unsubBooks(); unsubCats(); };
+  }, []);
+
   useEffect(()=>{ try{ localStorage.setItem('dbs_theme', dark?'dark':'light'); }catch{} },[dark]);
   useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[page]);
+
   const renderPage = () => {
     switch(page) {
-      case "home": return <HomePage setPage={setPage} setSelectedBook={setSelectedBook} cart={cart} setCart={setCart}/>;
-      case "store": return <StorePage setPage={setPage} setSelectedBook={setSelectedBook} cart={cart} setCart={setCart}/>;
-      case "book": return <BookPage book={selectedBook} setPage={setPage} cart={cart} setCart={setCart}/>;
-      case "checkout": return <CheckoutPage cart={cart} setCart={setCart} setPage={setPage}/>;
-      case "auth": return <AuthPage setPage={setPage} setUser={setUser}/>;
-      case "dashboard": return <DashboardPage user={user} setPage={setPage}/>;
-      // admin page removed
-      case "blog": return <BlogPage/>;
-      case "faq": return <FAQPage/>;
-      case "contact": return <ContactPage/>;
-      case "refund": return <RefundPage/>;
-      case "privacy": return <PrivacyPage/>;
-      default: return <HomePage setPage={setPage} setSelectedBook={setSelectedBook} cart={cart} setCart={setCart}/>;
+      case "home":     return <HomePage     setPage={setPage} setSelectedBook={setSelectedBook} cart={cart} setCart={setCart} liveBooks={liveBooks} liveCats={liveCats} user={user} requireLogin={requireLogin}/>;
+      case "store":    return <StorePage    setPage={setPage} setSelectedBook={setSelectedBook} cart={cart} setCart={setCart} liveBooks={liveBooks} liveCats={liveCats} user={user} requireLogin={requireLogin}/>;
+      case "book":     return <BookPage     book={selectedBook} setPage={setPage} cart={cart} setCart={setCart} user={user} requireLogin={requireLogin}/>;
+      case "checkout": return <CheckoutPage cart={cart} setCart={setCart} setPage={setPage} user={user} requireLogin={requireLogin}/>;
+      case "auth":     return <AuthPage     setPage={setPage} setUser={handleSetUser} redirectTo={afterLogin}/>;
+      case "dashboard":return <DashboardPage user={user} setPage={setPage} liveBooks={liveBooks}/>;
+      case "admin":    window.open("admin.html","_self"); return null;
+      case "blog":     return <BlogPage/>;
+      case "faq":      return <FAQPage/>;
+      case "contact":  return <ContactPage/>;
+      case "refund":   return <RefundPage/>;
+      case "privacy":  return <PrivacyPage/>;
+      default:         return <HomePage setPage={setPage} setSelectedBook={setSelectedBook} cart={cart} setCart={setCart} liveBooks={liveBooks} liveCats={liveCats} user={user} requireLogin={requireLogin}/>;
     }
   };
   return (
     <>
       <GlobalStyles dark={dark}/>
-      <Nav page={page} setPage={setPage} dark={dark} setDark={setDark} cart={cart} user={user} setUser={setUser}/>
+      <Nav page={page} setPage={setPage} dark={dark} setDark={setDark} cart={cart} user={user} setUser={setUser} onLogout={handleLogout}/>
       <main className="fade-in">{renderPage()}</main>
     </>
   );
