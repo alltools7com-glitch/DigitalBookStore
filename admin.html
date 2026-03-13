@@ -254,7 +254,7 @@ const DonutChart = ({slices}) => {
 const Login = ({onLogin}) => {
   const [u,setU]=useState(""),p2=useState(""),err=useState(""),loading=useState(false);
   const [pw,setPw]=p2; const [e,setE]=err; const [ld,setLd]=loading;
-  const go=()=>{if(!u||!pw){setE("Fill all fields.");return;}setLd(true);setTimeout(()=>{if(u==="admin"&&pw==="admin123")onLogin();else{setE("Wrong username or password.");setLd(false);}},900);};
+  const go=()=>{if(!u||!pw){setE("Fill all fields.");return;}setLd(true);setTimeout(()=>{const savedPw=localStorage.getItem('dbs_admin_pw')||'admin123';if(u==="admin"&&pw===savedPw)onLogin();else{setE("Wrong username or password.");setLd(false);}},900);};
   return <div className="login-wrap"><div style={{width:"100%",maxWidth:380,padding:"0 20px"}}>
     <div style={{textAlign:"center",marginBottom:36}}>
       <div style={{width:64,height:64,background:"linear-gradient(135deg,#C9A84C,#e8c96a)",borderRadius:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,margin:"0 auto 16px"}}>⚙️</div>
@@ -850,7 +850,15 @@ const SettingsTab = ({onLogout}) => {
         <div><label>New Password</label><input type="password" placeholder="••••••••" value={pass.newp} onChange={e=>setPass({...pass,newp:e.target.value})}/></div>
         <div><label>Confirm New Password</label><input type="password" placeholder="••••••••" value={pass.confirm} onChange={e=>setPass({...pass,confirm:e.target.value})}/></div>
       </div>
-      <button className="btn btn-gold" style={{marginTop:16,padding:"10px 22px",fontSize:13}} onClick={()=>{if(pass.newp&&pass.newp===pass.confirm){setToast("Password updated!");setPass({current:"",newp:"",confirm:""});}else setToast("Passwords do not match!");}}>Update Password</button>
+      <button className="btn btn-gold" style={{marginTop:16,padding:"10px 22px",fontSize:13}} onClick={()=>{
+  const savedPw=localStorage.getItem('dbs_admin_pw')||'admin123';
+  if(!pass.current||!pass.newp||!pass.confirm){setToast("Fill all fields!");return;}
+  if(pass.current!==savedPw){setToast("Current password is wrong!");return;}
+  if(pass.newp!==pass.confirm){setToast("Passwords do not match!");return;}
+  localStorage.setItem('dbs_admin_pw',pass.newp);
+  setToast("Password updated successfully!");
+  setPass({current:"",newp:"",confirm:""});
+}}>Update Password</button>
     </div>
     <div className="card" style={{padding:22,border:"1px solid rgba(224,92,75,.25)"}}>
       <div style={{fontWeight:700,fontSize:14,marginBottom:10,color:"var(--red)"}}>⚠️ Danger Zone</div>
