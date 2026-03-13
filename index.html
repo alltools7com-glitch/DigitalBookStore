@@ -61,6 +61,7 @@
   <!-- ═══ Performance: React PRODUCTION builds (3x faster) ═══ -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
@@ -75,7 +76,7 @@
 
 <!-- ═══ FIREBASE CONFIG — Same config as admin.html ═══ -->
 <script>
-// ── IMPORTANT: Same FIREBASE_CONFIG paste karo jo admin.html mein hai ──────
+// ── IMPORTANT: Use the same FIREBASE_CONFIG as in admin.html ──────────────
 const FIREBASE_CONFIG = {
   apiKey:            "AIzaSyAPJ2Dn2nxxoesgv0NZ-Xtw0MtpBWBUhbQ",
   authDomain:        "digitalbookstore-32ed4.firebaseapp.com",
@@ -88,9 +89,15 @@ const FIREBASE_CONFIG = {
 // ────────────────────────────────────────────────────────────────────────────
 
 const FB_ON = !!(FIREBASE_CONFIG.databaseURL && FIREBASE_CONFIG.databaseURL.includes("firebaseio.com"));
-let fireDB = null;
+let fireDB = null, fireAuth = null;
 if (FB_ON) {
-  try { firebase.initializeApp(FIREBASE_CONFIG); fireDB = firebase.database(); } catch(e) {}
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    fireDB   = firebase.database();
+    fireAuth = firebase.auth();
+    // Keep login session persistent across tabs/refreshes
+    fireAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
+  } catch(e) { console.warn("Firebase init failed:", e); }
 }
 
 const DB_STORE = {
@@ -540,7 +547,7 @@ const HomePage = ({ setPage, setSelectedBook, cart, setCart, liveBooks, liveCats
         <div style={{maxWidth:600,margin:"0 auto",textAlign:"center"}}>
           <div style={{fontSize:48,marginBottom:16}}>📬</div>
           <h2 className="playfair" style={{fontSize:"clamp(24px,3vw,36px)",fontWeight:700,marginBottom:12}}>Get Free eBook Previews</h2>
-          <p style={{color:"var(--text2)",marginBottom:28,lineHeight:1.6}}>Join 12,000+ readers who get weekly book summaries, exclusive discounts, and free chapter previews.</p>
+          <p style={{color:"var(--text2)",marginBottom:28,lineHeight:1.6}}>Join 12,000+ readers worldwide who get weekly book summaries, exclusive discounts, and free chapter previews.</p>
           {subbed?<div style={{background:"rgba(76,175,130,0.15)",border:"1px solid #4CAF82",borderRadius:12,padding:"16px 24px",color:"#4CAF82",fontWeight:600}}>✓ You're in! Check your inbox for a free welcome gift.</div>:(
             <div style={{display:"flex",gap:10,maxWidth:480,margin:"0 auto"}}>
               <input placeholder="Enter your email address..." value={email} onChange={e=>setEmail(e.target.value)} style={{flex:1}}/>
@@ -699,39 +706,68 @@ const BookPage = ({ book, setPage, cart, setCart, user, requireLogin }) => {
 };
 
 const PdfDownloadBtn = ({ book }) => {
-  const [status, setStatus] = useState("idle"); // idle | loading | ready | none
+  const [status, setStatus] = useState("idle");
   const [pdfData, setPdfData] = useState(null);
   const [pdfName, setPdfName] = useState("book.pdf");
+
+  // Convert Google Drive share link → direct download link
+  const toDriveDownload = url => {
+    if (!url) return url;
+    const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (m) return `https://drive.google.com/uc?export=download&id=${m[1]}`;
+    return url;
+  };
 
   const fetchAndDownload = async () => {
     setStatus("loading");
     try {
-      let data = null, fname = book.title+".pdf";
+      // Priority 1: Google Drive / external link stored in book.pdfLink
+      if (book.pdfLink) {
+        const url = toDriveDownload(book.pdfLink);
+        window.open(url, '_blank');
+        setStatus("done");
+        return;
+      }
+      // Priority 2: Firebase Realtime DB (base64 PDF)
+      let data = null, fname = book.title + ".pdf";
       if (fireDB) {
         const snap = await fireDB.ref('dbs_pdfs/' + book.id).once('value');
         const val = snap.val();
-        if (val && val.data) { data = val.data; fname = val.name || fname; }
+        if (val?.data) { data = val.data; fname = val.name || fname; }
       }
+      // Priority 3: localStorage fallback
       if (!data) {
-        try { data = localStorage.getItem('dbs_pdf_'+book.id); fname = localStorage.getItem('dbs_pdfname_'+book.id) || fname; } catch {}
+        try { data = localStorage.getItem('dbs_pdf_'+book.id); fname = localStorage.getItem('dbs_pdfname_'+book.id)||fname; } catch {}
       }
       if (!data) { setStatus("none"); return; }
       setPdfData(data); setPdfName(fname); setStatus("ready");
-      // Auto-trigger download
-      const a = document.createElement('a');
-      a.href = data; a.download = fname; a.click();
+      const a = document.createElement('a'); a.href=data; a.download=fname; a.click();
     } catch(e) { setStatus("none"); }
   };
 
-  if (status === "none") return <div style={{fontSize:12,color:"var(--text3)",padding:"8px 0"}}>⚠️ PDF abhi upload nahi hua — email pe bheja jayega</div>;
-  if (status === "ready") return (
-    <button className="btn-gold" style={{padding:"10px 18px",fontSize:13,display:"flex",alignItems:"center",gap:6}} onClick={()=>{const a=document.createElement('a');a.href=pdfData;a.download=pdfName;a.click();}}>
-      ⬇ Download PDF — {book.title}
+  if (status==="none") return (
+    <div style={{padding:"12px 14px",background:"rgba(247,147,26,0.08)",border:"1px solid rgba(247,147,26,0.25)",borderRadius:10,fontSize:13,color:"#F7931A"}}>
+      ⚠️ PDF not uploaded yet — please contact support or check your email for the download link
+    </div>
+  );
+  if (status==="done") return (
+    <div style={{padding:"12px 14px",background:"rgba(76,175,130,0.1)",border:"1px solid rgba(76,175,130,0.3)",borderRadius:10,fontSize:13,color:"var(--green)",display:"flex",alignItems:"center",gap:8}}>
+      ✅ Download started! — {book.title}
+      <button style={{marginLeft:"auto",fontSize:12,background:"none",border:"1px solid var(--green)",color:"var(--green)",borderRadius:6,padding:"4px 10px",cursor:"pointer"}} onClick={fetchAndDownload}>Again</button>
+    </div>
+  );
+  if (status==="ready") return (
+    <button className="btn-gold" style={{padding:"12px 20px",fontSize:14,display:"flex",alignItems:"center",gap:8,width:"100%",justifyContent:"center"}}
+      onClick={()=>{const a=document.createElement('a');a.href=pdfData;a.download=pdfName;a.click();}}>
+      ⬇ Download — {book.title}
     </button>
   );
   return (
-    <button className="btn-gold" style={{padding:"10px 18px",fontSize:13,opacity:status==="loading"?0.7:1,display:"flex",alignItems:"center",gap:6}} onClick={fetchAndDownload} disabled={status==="loading"}>
-      {status==="loading"?"⏳ Loading PDF...":"⬇ Download PDF — "+book.title}
+    <button className="btn-gold" style={{padding:"12px 20px",fontSize:14,opacity:status==="loading"?0.7:1,display:"flex",alignItems:"center",gap:8,width:"100%",justifyContent:"center"}}
+      onClick={fetchAndDownload} disabled={status==="loading"}>
+      {status==="loading"
+        ? <><span style={{animation:"spin 1s linear infinite",display:"inline-block"}}>⏳</span> Preparing download...</>
+        : <><span>⬇</span> Download PDF — {book.title}</>}
     </button>
   );
 };
@@ -750,8 +786,8 @@ const ThankYouPage = ({ setPage, books, payMethod }) => {
       </h1>
       <p style={{color:"var(--text2)",fontSize:15,maxWidth:480,margin:"0 auto"}}>
         {isManual
-          ? "Shukriya! Payment complete karo — hum aapka eBook kuch ghanton mein bhejenge."
-          : "Payment successful! Apni eBooks neeche se download karo."}
+          ? "Thank you! Please complete your payment — your eBook will be delivered within a few hours."
+          : "Payment successful! Your eBooks are ready to download below."}
       </p>
     </div>
 
@@ -759,7 +795,7 @@ const ThankYouPage = ({ setPage, books, payMethod }) => {
     {!isManual && booksArr.length > 0 && (
       <div style={{background:"rgba(76,175,130,0.07)",border:"2px solid rgba(76,175,130,0.3)",borderRadius:16,padding:24,marginBottom:24}}>
         <h3 style={{fontWeight:700,marginBottom:6,fontSize:17,color:"var(--green)"}}>📥 Apni eBooks Download Karo</h3>
-        <p style={{fontSize:13,color:"var(--text2)",marginBottom:16}}>Neeche diye button se PDF download karo — yeh links sirf aapke liye hain.</p>
+        <p style={{fontSize:13,color:"var(--text2)",marginBottom:16}}>Your personal download links are ready. Click below to download your eBooks instantly.</p>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {booksArr.map(b => <PdfDownloadBtn key={b.id} book={b}/>)}
         </div>
@@ -771,13 +807,13 @@ const ThankYouPage = ({ setPage, books, payMethod }) => {
       <div style={{background:"rgba(247,147,26,0.07)",border:"1px solid rgba(247,147,26,0.25)",borderRadius:14,padding:20,marginBottom:20}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
           <div style={{fontSize:24}}>📋</div>
-          <div style={{fontWeight:700,fontSize:15}}>Aage Kya Hoga?</div>
+          <div style={{fontWeight:700,fontSize:15}}>What Happens Next?</div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {[
-            ["1","💳","Payment complete karo","UPI ya BTC se exact amount bhejo"],
-            ["2","📧","Hum payment verify karenge","1–4 ghanton mein"],
-            ["3","📚","eBook aapki email pe aayegi","Download link email pe bheja jayega"],
+            ["1","💳","Complete your payment","Send the exact amount via UPI or BTC"],
+            ["2","📧","We verify your payment","Usually within 1–4 hours"],
+            ["3","📚","eBook delivered to your email","A download link will be sent to you"],
           ].map(([n,ic,title,sub])=>(
             <div key={n} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"10px 12px",background:"var(--surface2)",borderRadius:10}}>
               <div style={{width:28,height:28,background:"rgba(247,147,26,0.2)",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#F7931A",flexShrink:0}}>{n}</div>
@@ -813,8 +849,8 @@ const ThankYouPage = ({ setPage, books, payMethod }) => {
       <div style={{fontSize:20,flexShrink:0}}>📧</div>
       <div style={{fontSize:13,color:"var(--text2)",lineHeight:1.6}}>
         {isManual
-          ? "Payment confirm hone ke baad eBook aapki email pe bhejenge. Spam folder bhi check karo."
-          : "Order confirmation aapki email pe bhej diya gaya hai. Downloads aapki library mein bhi hain."}
+          ? "Your eBook will be sent to your email once payment is confirmed. Please check your spam folder too."
+          : "Order confirmation has been sent to your email. Your downloads are also available in your library."}
       </div>
     </div>
 
@@ -887,7 +923,7 @@ const PAYMENT_INFO = {
 };
 const CheckoutPage = ({ cart, setCart, setPage, user, requireLogin }) => {
   useEffect(()=>{ if(!user) requireLogin("checkout"); },[]);
-  if (!user) return <div style={{textAlign:"center",padding:80}}><div style={{fontSize:48,marginBottom:16}}>🔒</div><h2 className="playfair" style={{marginBottom:12}}>Login Required</h2><p style={{color:"var(--text2)",marginBottom:24}}>Checkout ke liye pehle login karo</p><button className="btn-gold" style={{padding:"12px 28px"}} onClick={()=>requireLogin("checkout")}>Login / Sign Up</button></div>;
+  if (!user) return <div style={{textAlign:"center",padding:80}}><div style={{fontSize:48,marginBottom:16}}>🔒</div><h2 className="playfair" style={{marginBottom:12}}>Login Required</h2><p style={{color:"var(--text2)",marginBottom:24}}>Please sign in to continue to checkout</p><button className="btn-gold" style={{padding:"12px 28px"}} onClick={()=>requireLogin("checkout")}>Login / Sign Up</button></div>;
   const [method, setMethod] = useState("paypal");
   const [coupon, setCoupon] = useState("");
   const [couponApplied, setCouponApplied] = useState(false);
@@ -1208,72 +1244,171 @@ const AuthPage = ({ setPage, setUser, redirectTo="dashboard" }) => {
   const [pass, setPass] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  const emailKey = e => e.toLowerCase().replace(/[.#$[\]]/g,"_");
+  // ── Save user profile to Firebase DB after auth ──
+  const saveUserProfile = async (fbUser, extraName) => {
+    if (!fireDB) return;
+    const key = fbUser.uid;
+    const snap = await fireDB.ref('dbs_users/' + key).once('value');
+    if (!snap.val()) {
+      await fireDB.ref('dbs_users/' + key).set({
+        uid: fbUser.uid,
+        name: extraName || fbUser.displayName || fbUser.email.split('@')[0],
+        email: fbUser.email,
+        photo: fbUser.photoURL || null,
+        createdAt: Date.now(),
+        provider: fbUser.providerData[0]?.providerId || 'password',
+      });
+    }
+    return { name: extraName || fbUser.displayName || snap.val()?.name || fbUser.email.split('@')[0], email: fbUser.email, uid: fbUser.uid, photo: fbUser.photoURL || null };
+  };
 
+  const isFileProtocol = window.location.protocol === 'file:';
+
+  // ── Google Sign-In ──
+  const googleLogin = async () => {
+    if (isFileProtocol) {
+      setErr("Google login requires a hosted URL (GitHub Pages or Live Server). Please use email/password login for now.");
+      return;
+    }
+    if (!fireAuth) { setErr("Firebase is not configured."); return; }
+    setGoogleLoading(true); setErr("");
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const result = await fireAuth.signInWithPopup(provider);
+      const profile = await saveUserProfile(result.user);
+      setUser(profile);
+      setPage(redirectTo);
+    } catch(e) {
+      if (e.code !== 'auth/popup-closed-by-user') setErr("Google login failed: " + (e.message||""));
+    }
+    setGoogleLoading(false);
+  };
+
+  // ── Email / Password ──
   const doAuth = async () => {
     setErr(""); setLoading(true);
-    if (!email || !pass) { setErr("Email aur password zaroori hai"); setLoading(false); return; }
-    if (mode==="register" && !name) { setErr("Apna naam likho"); setLoading(false); return; }
-    if (pass.length < 6) { setErr("Password kam se kam 6 characters ka hona chahiye"); setLoading(false); return; }
-
-    const key = emailKey(email);
+    if (!email || !pass) { setErr("Please enter your email and password"); setLoading(false); return; }
+    if (mode==="register" && !name) { setErr("Please enter your full name"); setLoading(false); return; }
+    if (pass.length < 6) { setErr("Password must be at least 6 characters"); setLoading(false); return; }
     try {
+      if (!fireAuth) throw new Error("Firebase is not configured");
+      let result;
       if (mode === "register") {
-        // Check if user already exists
-        let existing = null;
-        if (fireDB) {
-          const snap = await fireDB.ref('dbs_users/' + key).once('value');
-          existing = snap.val();
-        } else {
-          try { existing = JSON.parse(localStorage.getItem('dbs_user_'+key)); } catch {}
-        }
-        if (existing) { setErr("Yeh email pehle se registered hai! Login karo."); setLoading(false); return; }
-        const userData = { name, email: email.toLowerCase(), pass, createdAt: Date.now() };
-        if (fireDB) await fireDB.ref('dbs_users/' + key).set(userData);
-        else { try { localStorage.setItem('dbs_user_'+key, JSON.stringify(userData)); } catch {} }
-        const sessionUser = { name, email: email.toLowerCase() };
-        try { localStorage.setItem('dbs_session', JSON.stringify(sessionUser)); } catch {}
-        setUser(sessionUser);
-        setPage(redirectTo);
+        result = await fireAuth.createUserWithEmailAndPassword(email, pass);
+        await result.user.updateProfile({ displayName: name });
       } else {
-        // Login
-        let userData = null;
-        if (fireDB) {
-          const snap = await fireDB.ref('dbs_users/' + key).once('value');
-          userData = snap.val();
-        } else {
-          try { userData = JSON.parse(localStorage.getItem('dbs_user_'+key)); } catch {}
-        }
-        if (!userData) { setErr("Email registered nahi hai. Pehle sign up karo."); setLoading(false); return; }
-        if (userData.pass !== pass) { setErr("Password galat hai!"); setLoading(false); return; }
-        const sessionUser = { name: userData.name, email: userData.email };
-        try { localStorage.setItem('dbs_session', JSON.stringify(sessionUser)); } catch {}
-        setUser(sessionUser);
-        setPage(redirectTo);
+        result = await fireAuth.signInWithEmailAndPassword(email, pass);
       }
-    } catch(e) { setErr("Kuch problem aayi: " + e.message); }
+      const profile = await saveUserProfile(result.user, name);
+      setUser(profile);
+      setPage(redirectTo);
+    } catch(e) {
+      const msgs = {
+        'auth/email-already-in-use': 'This email is already registered. Please sign in.',
+        'auth/user-not-found': 'No account found with this email. Please sign up.',
+        'auth/wrong-password': 'Password galat hai!',
+        'auth/invalid-email': 'Please enter a valid email address.',
+        'auth/too-many-requests': 'Too many attempts. Please try again later.',
+      };
+      setErr(msgs[e.code] || e.message);
+    }
     setLoading(false);
   };
 
   return (
     <div style={{maxWidth:440,margin:"60px auto",padding:"0 24px"}}>
       <div style={{textAlign:"center",marginBottom:32}}>
-        <div style={{fontSize:40,marginBottom:12}}>📚</div>
-        <h1 className="playfair" style={{fontSize:32,fontWeight:700,marginBottom:8}}>{mode==="login"?"Welcome Back":"Create Account"}</h1>
-        <p style={{color:"var(--text2)",fontSize:14}}>{mode==="login"?"Sign in to access your library":"Join 12,000+ readers today"}</p>
-        {redirectTo==="checkout"&&<div style={{marginTop:12,padding:"10px 16px",background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.3)",borderRadius:10,fontSize:13,color:"var(--gold)"}}>🔒 Checkout ke liye pehle login zaroori hai</div>}
+        <div style={{fontSize:44,marginBottom:12}}>📚</div>
+        <h1 className="playfair" style={{fontSize:32,fontWeight:700,marginBottom:8}}>
+          {mode==="login"?"Welcome Back":"Create Account"}
+        </h1>
+        <p style={{color:"var(--text2)",fontSize:14}}>
+          {mode==="login"?"Sign in to access your library":"Join 12,000+ readers worldwide"}
+        </p>
+        {redirectTo==="checkout"&&(
+          <div style={{marginTop:12,padding:"10px 16px",background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.3)",borderRadius:10,fontSize:13,color:"var(--gold)"}}>
+            🔒 Please sign in to proceed to checkout
+          </div>
+        )}
       </div>
+
       <div className="card" style={{padding:32}}>
-        {mode==="register"&&<div style={{marginBottom:16}}><label>Full Name *</label><input placeholder="John Doe" value={name} onChange={e=>setName(e.target.value)}/></div>}
-        <div style={{marginBottom:16}}><label>Email *</label><input type="email" placeholder="john@example.com" value={email} onChange={e=>setEmail(e.target.value)}/></div>
-        <div style={{marginBottom:20}}><label>Password *</label><input type="password" placeholder="••••••••" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doAuth()}/></div>
-        {err&&<div style={{marginBottom:14,padding:"10px 14px",background:"rgba(220,53,69,0.1)",border:"1px solid rgba(220,53,69,0.3)",borderRadius:8,fontSize:13,color:"#ff6b6b"}}>⚠️ {err}</div>}
-        <button className="btn-gold" style={{width:"100%",padding:"13px",fontSize:15,marginBottom:16,opacity:loading?0.7:1}} onClick={doAuth} disabled={loading}>
+        {/* ── Google Sign-In Button ── */}
+        {isFileProtocol ? (
+          <div style={{width:"100%",padding:"12px 16px",marginBottom:16,background:"var(--surface2)",border:"1.5px dashed var(--border)",borderRadius:10,textAlign:"center",fontSize:13,color:"var(--text3)"}}>
+            <div style={{marginBottom:4}}>🔒 Google login requires a hosted website (http/https)</div>
+            <div style={{fontSize:12}}>Deploy to GitHub Pages or use VS Code Live Server — or sign in with email below ↓</div>
+          </div>
+        ) : (
+          <button
+            onClick={googleLogin}
+            disabled={googleLoading}
+            style={{width:"100%",padding:"13px 16px",marginBottom:16,background:"#fff",border:"1.5px solid #e0e0e0",borderRadius:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:12,fontSize:15,fontWeight:600,color:"#3c4043",fontFamily:"DM Sans",boxShadow:"0 1px 4px rgba(0,0,0,0.12)",transition:"box-shadow .2s",opacity:googleLoading?0.7:1}}
+            onMouseEnter={e=>e.currentTarget.style.boxShadow="0 2px 10px rgba(0,0,0,0.18)"}
+            onMouseLeave={e=>e.currentTarget.style.boxShadow="0 1px 4px rgba(0,0,0,0.12)"}
+          >
+            {googleLoading ? "⏳ Connecting..." : (
+              <>
+                <svg width="20" height="20" viewBox="0 0 48 48">
+                  <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.8 2.5 30.3 0 24 0 14.7 0 6.7 5.5 2.8 13.5l7.8 6C12.3 13 17.7 9.5 24 9.5z"/>
+                  <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4 6.9-10 6.9-17z"/>
+                  <path fill="#FBBC05" d="M10.6 28.6A14.4 14.4 0 0 1 9.5 24c0-1.6.3-3.1.7-4.6l-7.8-6A24 24 0 0 0 0 24c0 3.9.9 7.5 2.8 10.7l7.8-6.1z"/>
+                  <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.8 2.2-8.4 2.2-6.3 0-11.7-3.5-13.4-8.5l-7.8 6C6.7 42.5 14.7 48 24 48z"/>
+                </svg>
+                Continue with Google
+              </>
+            )}
+          </button>
+        )}
+
+        {/* ── Divider ── */}
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
+          <div style={{flex:1,height:1,background:"var(--border)"}}/>
+          <span style={{fontSize:12,color:"var(--text3)",fontWeight:500}}>or continue with email</span>
+          <div style={{flex:1,height:1,background:"var(--border)"}}/>
+        </div>
+
+        {/* ── Mode Toggle ── */}
+        <div style={{display:"flex",background:"var(--surface2)",borderRadius:10,padding:3,marginBottom:18,border:"1px solid var(--border)"}}>
+          {["login","register"].map(m=>(
+            <button key={m} onClick={()=>{setMode(m);setErr("");}} style={{flex:1,padding:"9px",background:mode===m?"var(--gold)":"transparent",color:mode===m?"#0a0807":"var(--text2)",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:mode===m?700:400,fontFamily:"DM Sans",transition:"all .2s"}}>
+              {m==="login"?"🔑 Login":"✏️ Sign Up"}
+            </button>
+          ))}
+        </div>
+
+        {mode==="register"&&(
+          <div style={{marginBottom:14}}>
+            <label>Full Name *</label>
+            <input placeholder="John Doe" value={name} onChange={e=>setName(e.target.value)}/>
+          </div>
+        )}
+        <div style={{marginBottom:14}}>
+          <label>Email *</label>
+          <input type="email" placeholder="john@example.com" value={email} onChange={e=>setEmail(e.target.value)}/>
+        </div>
+        <div style={{marginBottom:18}}>
+          <label>Password *</label>
+          <input type="password" placeholder="••••••••" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doAuth()}/>
+        </div>
+
+        {err&&(
+          <div style={{marginBottom:14,padding:"10px 14px",background:"rgba(220,53,69,0.1)",border:"1px solid rgba(220,53,69,0.3)",borderRadius:8,fontSize:13,color:"#ff6b6b"}}>
+            ⚠️ {err}
+          </div>
+        )}
+
+        <button className="btn-gold" style={{width:"100%",padding:"13px",fontSize:15,opacity:loading?0.7:1}} onClick={doAuth} disabled={loading}>
           {loading?"⏳ Please wait...":mode==="login"?"Sign In →":"Create Account →"}
         </button>
-        <div style={{textAlign:"center",fontSize:13}}>{mode==="login"?<>Don't have an account? <span style={{color:"var(--gold)",cursor:"pointer",fontWeight:600}} onClick={()=>{setMode("register");setErr("");}}>Sign up free</span></>:<>Already have an account? <span style={{color:"var(--gold)",cursor:"pointer",fontWeight:600}} onClick={()=>{setMode("login");setErr("");}}>Sign in</span></>}</div>
       </div>
+
+      <p style={{textAlign:"center",fontSize:12,color:"var(--text3)",marginTop:16}}>
+        🔒 Your data is secure. We never share your information.
+      </p>
     </div>
   );
 };
@@ -1285,7 +1420,7 @@ const DashboardPage = ({ user, setPage, liveBooks }) => {
     <div style={{maxWidth:1100,margin:"0 auto",padding:"40px 24px"}}>
       <div style={{display:"flex",gap:20,marginBottom:32,alignItems:"center"}}>
         <div style={{width:60,height:60,background:"linear-gradient(135deg,var(--gold),#e8c96a)",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,fontWeight:700,color:"#0a0807"}}>JD</div>
-        <div><h1 className="playfair" style={{fontSize:28,fontWeight:700}}>Welcome back, {user?.name||"Reader"}</h1><p style={{color:"var(--text2)",fontSize:14}}>john@example.com &nbsp;•&nbsp; Member since 2024</p></div>
+        <div><h1 className="playfair" style={{fontSize:28,fontWeight:700}}>Welcome back, {user?.name||"Reader"}</h1><p style={{color:"var(--text2)",fontSize:14}}>{user?.email||''} &nbsp;•&nbsp; Member since 2025</p></div>
       </div>
       <div style={{display:"flex",gap:8,marginBottom:28}}>
         {["library","history","profile"].map(t=><button key={t} onClick={()=>setTab(t)} style={{padding:"9px 18px",background:tab===t?"rgba(201,168,76,0.15)":"var(--surface2)",border:`1px solid ${tab===t?"var(--gold)":"var(--border)"}`,color:tab===t?"var(--gold)":"var(--text2)",cursor:"pointer",borderRadius:8,fontSize:13,fontFamily:"DM Sans",textTransform:"capitalize",fontWeight:tab===t?600:400}}>{t}</button>)}
@@ -1390,7 +1525,7 @@ const ContactPage = () => {
         <div style={{display:"grid",gap:16}}>
           {[
             {icon:"📧",title:"Email Us",val:"dcsystem77@gmail.com",sub:"We reply within 2–4 hours"},
-            {icon:"🕐",title:"Support Hours",val:"7 Days a Week",sub:"9 AM – 11 PM (PKT)"},
+            {icon:"🕐",title:"Support Hours",val:"7 Days a Week",sub:"24/7 Support"},
             {icon:"💬",title:"Response Time",val:"Under 4 Hours",sub:"Average response time"},
             {icon:"🌍",title:"We Serve",val:"Worldwide",sub:"All countries supported"},
           ].map(({icon,title,val,sub})=>(
@@ -1509,30 +1644,38 @@ function App() {
   const [liveBooks, setLiveBooks] = useState(BOOKS);
   const [liveCats,  setLiveCats]  = useState(CATEGORIES);
   const [selectedBook, setSelectedBook] = useState(BOOKS[0]);
-  const [user, setUser] = useState(()=>{
-    // Restore session on page load
-    try { const s = localStorage.getItem('dbs_session'); return s ? JSON.parse(s) : null; } catch { return null; }
-  });
+  const [user, setUser] = useState(null);
+  const [authReady, setAuthReady] = useState(!FB_ON); // if no Firebase, skip loading
   const [afterLogin, setAfterLogin] = useState("dashboard");
 
-  // Login guard: redirects to auth if not logged in
-  const requireLogin = (targetPage) => {
-    if (user) { setPage(targetPage); }
-    else { setAfterLogin(targetPage); setPage("auth"); }
-  };
+  // Listen to Firebase Auth state — auto login/logout across tabs
+  useEffect(() => {
+    if (!fireAuth) {
+      // Fallback: restore from localStorage
+      try { const s = localStorage.getItem('dbs_session'); if(s) setUser(JSON.parse(s)); } catch {}
+      setAuthReady(true);
+      return;
+    }
+    const unsub = fireAuth.onAuthStateChanged(async (fbUser) => {
+      if (fbUser) {
+        // Get saved profile name from DB
+        let displayName = fbUser.displayName || fbUser.email.split('@')[0];
+        try {
+          if (fireDB) {
+            const snap = await fireDB.ref('dbs_users/' + fbUser.uid).once('value');
+            if (snap.val()?.name) displayName = snap.val().name;
+          }
+        } catch {}
+        setUser({ name: displayName, email: fbUser.email, uid: fbUser.uid, photo: fbUser.photoURL });
+      } else {
+        setUser(null);
+      }
+      setAuthReady(true);
+    });
+    return () => unsub();
+  }, []);
 
-  const handleSetUser = (u) => {
-    setUser(u);
-    // After login, go to saved target page
-    setPage(afterLogin || "dashboard");
-  };
-
-  const handleLogout = () => {
-    try { localStorage.removeItem('dbs_session'); } catch {}
-    setUser(null);
-    setPage("home");
-  };
-
+  // ── Books & Cats real-time listeners ──
   useEffect(()=>{
     const unsubBooks = DB_STORE.listen('dbs_books', data => {
       const processed = processBooks(data);
@@ -1550,6 +1693,32 @@ function App() {
 
   useEffect(()=>{ try{ localStorage.setItem('dbs_theme', dark?'dark':'light'); }catch{} },[dark]);
   useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[page]);
+
+  const handleSetUser = (u) => { setUser(u); setPage(afterLogin||"dashboard"); };
+
+  const handleLogout = async () => {
+    if (fireAuth) { try { await fireAuth.signOut(); } catch {} }
+    try { localStorage.removeItem('dbs_session'); } catch {}
+    setUser(null);
+    setPage("home");
+  };
+
+  // ── Login guard ──
+  const requireLogin = (targetPage) => {
+    if (user) { setPage(targetPage); }
+    else { setAfterLogin(targetPage); setPage("auth"); }
+  };
+
+  // ── Show loading until Firebase Auth state is resolved ──
+  if (!authReady) return (
+    <>
+      <GlobalStyles dark={dark}/>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",flexDirection:"column",gap:16}}>
+        <div style={{fontSize:44,animation:"pulse 1.5s infinite"}}>📚</div>
+        <div style={{color:"var(--text2)",fontSize:15,fontFamily:"DM Sans",fontWeight:500}}>Loading...</div>
+      </div>
+    </>
+  );
 
   const renderPage = () => {
     switch(page) {
