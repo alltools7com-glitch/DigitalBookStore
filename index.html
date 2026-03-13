@@ -1185,21 +1185,14 @@ const AuthPage = ({ setPage, setUser }) => {
           <button
             onClick={handleGoogle}
             disabled={loading}
-            style={{width:"100%",padding:"12px",background:"#fff",border:"1px solid #dadce0",borderRadius:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:12,fontSize:14,fontWeight:600,color:"#3c4043",fontFamily:"DM Sans",transition:"all .2s",boxShadow:"0 1px 4px rgba(0,0,0,0.1)"}}>
-            <svg width="20" height="20" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-            </svg>
+            style={{width:"100%",padding:"13px",background:"#fff",border:"2px solid #dadce0",borderRadius:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,fontSize:14,fontWeight:700,color:"#3c4043",fontFamily:"DM Sans",transition:"all .2s",boxShadow:"0 2px 8px rgba(0,0,0,0.1)"}}>
+            <span style={{fontSize:20}}>🔵</span>
             {loading ? "Loading..." : "Continue with Google"}
           </button>
           <button
             onClick={handleFacebook}
-            style={{width:"100%",padding:"12px",background:"#1877F2",border:"none",borderRadius:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:12,fontSize:14,fontWeight:600,color:"#fff",fontFamily:"DM Sans",transition:"all .2s"}}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-            </svg>
+            style={{width:"100%",padding:"13px",background:"#1877F2",border:"none",borderRadius:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,fontSize:14,fontWeight:700,color:"#fff",fontFamily:"DM Sans",transition:"all .2s"}}>
+            <span style={{fontSize:20}}>👤</span>
             Continue with Facebook
           </button>
         </div>
@@ -1382,4 +1375,119 @@ const ContactPage = () => {
                   <option>Technical Support</option>
                   <option>Partnership / Bulk Order</option>
                   <option>Content Suggestion</option>
-                  <option>Other</op
+                  <option>Other</option>
+                </select>
+              </div>
+              <div style={{marginBottom:24}}>
+                <label>Message *</label>
+                <textarea placeholder="Describe your question or issue in detail..." rows={5} value={form.message} onChange={handle("message")} style={{resize:"vertical"}}/>
+              </div>
+              <button className="btn-gold" style={{width:"100%",padding:"14px",fontSize:15}} onClick={submit} disabled={loading}>
+                {loading?"⏳ Sending...":"📤 Send Message"}
+              </button>
+              <p style={{fontSize:12,color:"var(--text3)",textAlign:"center",marginTop:12}}>Or email directly: <a href="mailto:dcsystem77@gmail.com" style={{color:"var(--gold)",textDecoration:"none",fontWeight:600}}>dcsystem77@gmail.com</a></p>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const RefundPage = () => (
+  <div style={{maxWidth:800,margin:"0 auto",padding:"60px 24px"}}>
+    <div style={{textAlign:"center",marginBottom:48}}>
+      <div className="tag" style={{background:"rgba(76,175,130,0.15)",color:"var(--green)",marginBottom:14}}>100% Protected</div>
+      <h1 className="playfair" style={{fontSize:"clamp(32px,4vw,52px)",fontWeight:700,marginBottom:12}}>Refund <em style={{color:"var(--gold)"}}>Policy</em></h1>
+      <p style={{color:"var(--text2)",fontSize:15}}>Last updated: January 1, 2025</p>
+    </div>
+    <div style={{background:"linear-gradient(135deg,rgba(76,175,130,0.1),rgba(76,175,130,0.04))",border:"1px solid rgba(76,175,130,0.3)",borderRadius:16,padding:28,marginBottom:36,display:"flex",gap:20,alignItems:"flex-start"}}>
+      <div style={{fontSize:40,flexShrink:0}}>🛡️</div>
+      <div><h2 style={{fontWeight:700,color:"var(--green)",marginBottom:6}}>30-Day Money-Back Guarantee</h2><p style={{color:"var(--text2)",lineHeight:1.7,fontSize:15}}>We stand behind every eBook in our store. If you're not completely satisfied within 30 days of purchase, we'll issue a full refund — no questions asked, no hassle.</p></div>
+    </div>
+    {[
+      {title:"1. Eligibility for Refund",body:"You are eligible for a full refund if:\n• Your refund request is submitted within 30 days of purchase\n• You have not downloaded the eBook more than 3 times\n• The issue is reported to us at dcsystem77@gmail.com\n\nRefunds are processed within 3–5 business days to your original payment method."},
+      {title:"2. How to Request a Refund",body:"To request a refund, simply send an email to dcsystem77@gmail.com with:\n• Your order ID or email used at checkout\n• The title of the eBook\n• A brief reason for your refund (optional but appreciated)\n\nWe aim to process all refund requests within 24 hours of receiving them."},
+      {title:"3. Non-Refundable Situations",body:"Refunds may not be issued in the following cases:\n• More than 30 days have passed since the purchase date\n• The eBook has been downloaded more than 3 times (indicates full consumption)\n• Coupon or promotional offers labeled as 'Non-Refundable'\n• Fraudulent or repeat refund abuse (more than 3 refunds per account)"},
+      {title:"4. Technical Issues",body:"If you experience a technical problem with downloading or accessing your eBook, please contact us first at dcsystem77@gmail.com. In most cases we can resolve the issue immediately. Technical issues are always fully covered under our guarantee."},
+      {title:"5. Bundle Purchases",body:"For bundle purchases, refunds are applied to the entire bundle if requested within 30 days. Partial refunds for individual books within a bundle are evaluated case-by-case."},
+      {title:"6. Contact Us",body:"For any refund-related questions, reach out to us at:\n📧 dcsystem77@gmail.com\n\nOur support team is available 7 days a week and responds within 2–4 hours."},
+    ].map(({title,body})=>(
+      <div key={title} className="card" style={{padding:28,marginBottom:16}}>
+        <h2 style={{fontWeight:700,fontSize:17,marginBottom:12,color:"var(--text)"}}>{title}</h2>
+        <p style={{color:"var(--text2)",fontSize:14,lineHeight:1.9,whiteSpace:"pre-line"}}>{body}</p>
+      </div>
+    ))}
+    <div style={{textAlign:"center",marginTop:36}}>
+      <a href="mailto:dcsystem77@gmail.com" style={{textDecoration:"none"}}><button className="btn-gold" style={{padding:"13px 32px",fontSize:14}}>📧 Request a Refund</button></a>
+    </div>
+  </div>
+);
+
+const PrivacyPage = () => (
+  <div style={{maxWidth:800,margin:"0 auto",padding:"60px 24px"}}>
+    <div style={{textAlign:"center",marginBottom:48}}>
+      <div className="tag" style={{background:"rgba(124,159,176,0.15)",color:"var(--blue)",marginBottom:14}}>Legal</div>
+      <h1 className="playfair" style={{fontSize:"clamp(32px,4vw,52px)",fontWeight:700,marginBottom:12}}>Privacy <em style={{color:"var(--gold)"}}>Policy</em></h1>
+      <p style={{color:"var(--text2)",fontSize:15}}>Last updated: January 1, 2025</p>
+    </div>
+    <div style={{background:"rgba(201,168,76,0.07)",border:"1px solid rgba(201,168,76,0.2)",borderRadius:16,padding:24,marginBottom:36}}>
+      <p style={{color:"var(--text2)",fontSize:14,lineHeight:1.8}}>At <strong style={{color:"var(--gold)"}}>DigitalBookStore</strong>, your privacy matters deeply to us. This policy explains what information we collect, how we use it, and your rights as a user. We are committed to protecting your personal data and never selling it to third parties.</p>
+    </div>
+    {[
+      {icon:"📋",title:"1. Information We Collect",body:"We collect information you provide directly to us:\n• Name and email address (when you register or subscribe)\n• Payment information (processed securely via our payment provider — we never store card details)\n• Purchase history and downloaded titles\n• Messages or inquiries sent to dcsystem77@gmail.com\n\nWe also collect basic usage data such as pages visited and device type to improve our service."},
+      {icon:"🎯",title:"2. How We Use Your Information",body:"Your information is used to:\n• Process your purchases and deliver your eBooks\n• Send purchase confirmations and download links\n• Provide customer support\n• Send newsletters and promotions (only if you opted in)\n• Improve our website and product selection\n• Comply with legal obligations\n\nWe never sell, rent, or trade your personal information to third parties."},
+      {icon:"🔒",title:"3. Data Security",body:"We take security seriously. All data is transmitted over SSL-encrypted connections. Payment processing is handled by PCI-DSS compliant providers. We regularly review our security practices to protect your data from unauthorized access, disclosure, or destruction."},
+      {icon:"🍪",title:"4. Cookies",body:"We use cookies to:\n• Keep you logged into your account\n• Remember your theme and preferences\n• Analyze site traffic anonymously via analytics tools\n\nYou can disable cookies in your browser settings. Note that some features (like staying logged in) may not work without them."},
+      {icon:"✉️",title:"5. Email Communications",body:"If you subscribe to our newsletter, you'll receive weekly book summaries, discount codes, and free chapter previews. You can unsubscribe at any time using the link at the bottom of any email we send, or by contacting us at dcsystem77@gmail.com."},
+      {icon:"👤",title:"6. Your Rights",body:"You have the right to:\n• Access the personal data we hold about you\n• Request correction of inaccurate data\n• Request deletion of your account and data\n• Withdraw consent for email marketing at any time\n\nTo exercise any of these rights, contact us at dcsystem77@gmail.com."},
+      {icon:"📞",title:"7. Contact & Questions",body:"For any privacy-related questions or concerns, please contact:\n📧 dcsystem77@gmail.com\n\nWe will respond to all privacy inquiries within 48 hours."},
+    ].map(({icon,title,body})=>(
+      <div key={title} className="card" style={{padding:28,marginBottom:16}}>
+        <h2 style={{fontWeight:700,fontSize:17,marginBottom:12,display:"flex",gap:10,alignItems:"center"}}><span style={{fontSize:20}}>{icon}</span>{title}</h2>
+        <p style={{color:"var(--text2)",fontSize:14,lineHeight:1.9,whiteSpace:"pre-line"}}>{body}</p>
+      </div>
+    ))}
+  </div>
+);
+
+function App() {
+  const [page, setPage] = useState("home");
+  const [dark, setDark] = useState(()=>{
+    try{ const s=localStorage.getItem('dbs_theme'); return s!==null ? s==='dark' : true; }catch{ return true; }
+  });
+  const [cart, setCart] = useState([]);
+  const [selectedBook, setSelectedBook] = useState(LIVE_BOOKS[0]);
+  const [user, setUser] = useState(null);
+  useEffect(()=>{ try{ localStorage.setItem('dbs_theme', dark?'dark':'light'); }catch{} },[dark]);
+  useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[page]);
+  const renderPage = () => {
+    switch(page) {
+      case "home": return <HomePage setPage={setPage} setSelectedBook={setSelectedBook} cart={cart} setCart={setCart}/>;
+      case "store": return <StorePage setPage={setPage} setSelectedBook={setSelectedBook} cart={cart} setCart={setCart}/>;
+      case "book": return <BookPage book={selectedBook} setPage={setPage} cart={cart} setCart={setCart}/>;
+      case "checkout": return <CheckoutPage cart={cart} setCart={setCart} setPage={setPage}/>;
+      case "auth": return <AuthPage setPage={setPage} setUser={setUser}/>;
+      case "dashboard": return <DashboardPage user={user} setPage={setPage}/>;
+      // admin page removed
+      case "blog": return <BlogPage/>;
+      case "faq": return <FAQPage/>;
+      case "contact": return <ContactPage/>;
+      case "refund": return <RefundPage/>;
+      case "privacy": return <PrivacyPage/>;
+      default: return <HomePage setPage={setPage} setSelectedBook={setSelectedBook} cart={cart} setCart={setCart}/>;
+    }
+  };
+  return (
+    <>
+      <GlobalStyles dark={dark}/>
+      <Nav page={page} setPage={setPage} dark={dark} setDark={setDark} cart={cart} user={user} setUser={setUser}/>
+      <main className="fade-in">{renderPage()}</main>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
