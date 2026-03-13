@@ -1305,6 +1305,26 @@ const AuthPage = ({ setPage, setUser, redirectTo="dashboard" }) => {
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+
+  // ── Forgot Password ──
+  const doReset = async () => {
+    setErr(""); setLoading(true);
+    if (!email) { setErr("Please enter your email address first."); setLoading(false); return; }
+    if (!fireAuth) { setErr("Firebase is not configured."); setLoading(false); return; }
+    try {
+      await fireAuth.sendPasswordResetEmail(email);
+      setResetSent(true);
+    } catch(e) {
+      const msgs = {
+        'auth/user-not-found': 'No account found with this email.',
+        'auth/invalid-email': 'Please enter a valid email address.',
+        'auth/too-many-requests': 'Too many attempts. Please wait a few minutes and try again.',
+      };
+      setErr(msgs[e.code] || e.message);
+    }
+    setLoading(false);
+  };
 
   // ── Save user profile to Firebase DB after auth ──
   const saveUserProfile = async (fbUser, extraName) => {
@@ -1383,20 +1403,68 @@ const AuthPage = ({ setPage, setUser, redirectTo="dashboard" }) => {
 
   return (
     <div style={{maxWidth:440,margin:"60px auto",padding:"0 24px"}}>
-      <div style={{textAlign:"center",marginBottom:32}}>
-        <div style={{fontSize:44,marginBottom:12}}>📚</div>
-        <h1 className="playfair" style={{fontSize:32,fontWeight:700,marginBottom:8}}>
-          {mode==="login"?"Welcome Back":"Create Account"}
-        </h1>
-        <p style={{color:"var(--text2)",fontSize:14}}>
-          {mode==="login"?"Sign in to access your library":"Join 12,000+ readers worldwide"}
-        </p>
-        {redirectTo==="checkout"&&(
-          <div style={{marginTop:12,padding:"10px 16px",background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.3)",borderRadius:10,fontSize:13,color:"var(--gold)"}}>
-            🔒 Please sign in to proceed to checkout
+
+      {/* ── FORGOT PASSWORD MODE ── */}
+      {mode==="forgot"&&(
+        <div>
+          <div style={{textAlign:"center",marginBottom:32}}>
+            <div style={{fontSize:44,marginBottom:12}}>🔑</div>
+            <h1 className="playfair" style={{fontSize:30,fontWeight:700,marginBottom:8}}>Reset Password</h1>
+            <p style={{color:"var(--text2)",fontSize:14}}>Enter your email and we'll send you a reset link</p>
           </div>
-        )}
-      </div>
+          <div className="card" style={{padding:32}}>
+            {resetSent ? (
+              <div style={{textAlign:"center"}}>
+                <div style={{fontSize:48,marginBottom:16}}>📬</div>
+                <h2 style={{fontWeight:700,fontSize:18,marginBottom:10}}>Check your inbox!</h2>
+                <p style={{color:"var(--text2)",fontSize:14,marginBottom:20,lineHeight:1.7}}>
+                  A password reset link has been sent to<br/>
+                  <strong style={{color:"var(--gold)"}}>{email}</strong>.<br/>
+                  Check your spam folder if you don't see it.
+                </p>
+                <button className="btn-gold" style={{width:"100%",padding:"12px",fontSize:14}} onClick={()=>{setMode("login");setResetSent(false);setErr("");}}>
+                  ← Back to Sign In
+                </button>
+              </div>
+            ) : (
+              <>
+                <div style={{marginBottom:18}}>
+                  <label>Email Address *</label>
+                  <input type="email" placeholder="john@example.com" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doReset()}/>
+                </div>
+                {err&&<div style={{marginBottom:14,padding:"10px 14px",background:"rgba(220,53,69,0.1)",border:"1px solid rgba(220,53,69,0.3)",borderRadius:8,fontSize:13,color:"#ff6b6b"}}>⚠️ {err}</div>}
+                <button className="btn-gold" style={{width:"100%",padding:"13px",fontSize:15,marginBottom:12,opacity:loading?0.7:1}} onClick={doReset} disabled={loading}>
+                  {loading?"⏳ Sending...":"📧 Send Reset Link"}
+                </button>
+                <button onClick={()=>{setMode("login");setErr("");}} style={{width:"100%",padding:"11px",background:"transparent",border:"1px solid var(--border)",borderRadius:8,color:"var(--text2)",cursor:"pointer",fontSize:14,fontFamily:"DM Sans"}}>
+                  ← Back to Sign In
+                </button>
+              </>
+            )}
+          </div>
+          <p style={{textAlign:"center",fontSize:12,color:"var(--text3)",marginTop:16}}>
+            🔒 Your data is secure. We never share your information.
+          </p>
+        </div>
+      )}
+
+      {/* ── LOGIN / REGISTER MODE ── */}
+      {mode!=="forgot"&&(
+        <div>
+        <div style={{textAlign:"center",marginBottom:32}}>
+          <div style={{fontSize:44,marginBottom:12}}>📚</div>
+          <h1 className="playfair" style={{fontSize:32,fontWeight:700,marginBottom:8}}>
+            {mode==="login"?"Welcome Back":"Create Account"}
+          </h1>
+          <p style={{color:"var(--text2)",fontSize:14}}>
+            {mode==="login"?"Sign in to access your library":"Join 12,000+ readers worldwide"}
+          </p>
+          {redirectTo==="checkout"&&(
+            <div style={{marginTop:12,padding:"10px 16px",background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.3)",borderRadius:10,fontSize:13,color:"var(--gold)"}}>
+              🔒 Please sign in to proceed to checkout
+            </div>
+          )}
+        </div>
 
       <div className="card" style={{padding:32}}>
         {/* ── Google Sign-In Button ── */}
@@ -1454,13 +1522,23 @@ const AuthPage = ({ setPage, setUser, redirectTo="dashboard" }) => {
           <input type="email" placeholder="john@example.com" value={email} onChange={e=>setEmail(e.target.value)}/>
         </div>
         <div style={{marginBottom:18}}>
-          <label>Password *</label>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+            <label style={{margin:0}}>Password *</label>
+            {mode==="login"&&<button onClick={()=>{setMode("forgot");setErr("");setResetSent(false);}} style={{background:"none",border:"none",color:"var(--gold)",fontSize:12,cursor:"pointer",fontFamily:"DM Sans",padding:0,textDecoration:"underline"}}>Forgot password?</button>}
+          </div>
           <input type="password" placeholder="••••••••" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doAuth()}/>
         </div>
 
         {err&&(
           <div style={{marginBottom:14,padding:"10px 14px",background:"rgba(220,53,69,0.1)",border:"1px solid rgba(220,53,69,0.3)",borderRadius:8,fontSize:13,color:"#ff6b6b"}}>
             ⚠️ {err}
+            {err.includes("Too many attempts")&&mode==="login"&&(
+              <div style={{marginTop:8}}>
+                <button onClick={()=>{setMode("forgot");setErr("");setResetSent(false);}} style={{background:"none",border:"none",color:"var(--gold)",fontSize:13,cursor:"pointer",fontFamily:"DM Sans",padding:0,textDecoration:"underline",fontWeight:600}}>
+                  → Reset your password here
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -1472,6 +1550,8 @@ const AuthPage = ({ setPage, setUser, redirectTo="dashboard" }) => {
       <p style={{textAlign:"center",fontSize:12,color:"var(--text3)",marginTop:16}}>
         🔒 Your data is secure. We never share your information.
       </p>
+      </div>
+      )}
     </div>
   );
 };
