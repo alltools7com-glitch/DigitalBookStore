@@ -110,6 +110,62 @@ const TESTIMONIALS = [
   { name: "Aisha Patel", role: "Product Manager", text: "Sovereign Mind gave me back 3 hours of deep focus every day. I've read 40+ productivity books. This is the only one that actually worked.", avatar: "AP", book: "Sovereign Mind" },
 ];
 
+
+// ── Live data from admin panel (localStorage) ──
+const CAT_ICONS = {"Business":"📈","Design":"🎨","Self-Help":"🧠","Finance":"💰","Technology":"⚡","Marketing":"🎯","AI Tools":"🤖","Kids":"🧸","18+":"🔞","Health & Fitness":"💪","Weight Loss":"⚖️"};
+const CAT_COLORS = {"Business":"#C9A84C","Design":"#7C9FB0","Self-Help":"#B8A9C9","Finance":"#4CAF82","Technology":"#E86B4F","Marketing":"#F4A261","AI Tools":"#A78BFA","Kids":"#34D399","18+":"#F472B6","Health & Fitness":"#FB923C","Weight Loss":"#FBBF24"};
+const COVER_COLORS = ["#C9A84C","#7C9FB0","#B8A9C9","#4CAF82","#E86B4F","#F4A261","#A78BFA","#34D399","#F472B6","#FB923C","#FBBF24","#67E8F9"];
+const COVER_BGS   = ["#1a1208","#080e12","#0d0a14","#060f0a","#140800","#140900","#0d0814","#030f13","#14020d","#120600","#120e00","#030f13"];
+
+const getLiveBooks = () => {
+  try {
+    const s = localStorage.getItem('dbs_books');
+    if (!s) return BOOKS;
+    const adminBooks = JSON.parse(s);
+    return adminBooks
+      .filter(ab => ab.status !== 'Inactive')
+      .map((ab, idx) => {
+        const storeBook = BOOKS.find(b => b.id === ab.id);
+        if (storeBook) return { ...storeBook, ...ab, price: parseFloat(ab.price) || storeBook.price };
+        const ci = idx % COVER_COLORS.length;
+        const initials = ab.title.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+        return {
+          cover: initials,
+          color: COVER_COLORS[ci],
+          bg: COVER_BGS[ci],
+          originalPrice: ab.originalPrice || parseFloat((ab.price * 1.8).toFixed(2)),
+          description: ab.description || `A premium eBook on ${ab.category}. Instant PDF + EPUB download after purchase.`,
+          pages: ab.pages || 220,
+          format: 'PDF + EPUB',
+          bestseller: false,
+          featured: false,
+          reviews: ab.sales || 0,
+          rating: ab.rating || 4.7,
+          toc: [],
+          benefits: ["Instant download after purchase","PDF + EPUB included","Lifetime access","30-day money back"],
+          ...ab,
+          price: parseFloat(ab.price) || 9.99,
+        };
+      });
+  } catch(e) { return BOOKS; }
+};
+
+const getLiveCats = () => {
+  try {
+    const s = localStorage.getItem('dbs_cats');
+    if (!s) return CATEGORIES;
+    return JSON.parse(s).map(c => ({
+      name: c.name,
+      icon: CAT_ICONS[c.name] || '📚',
+      count: c.books || 0,
+      color: CAT_COLORS[c.name] || '#C9A84C',
+    }));
+  } catch(e) { return CATEGORIES; }
+};
+
+const LIVE_BOOKS = getLiveBooks();
+const LIVE_CATS  = getLiveCats();
+
 const GlobalStyles = ({ dark }) => (
   <style>{`
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
@@ -301,7 +357,7 @@ const Nav = ({ page, setPage, dark, setDark, cart, user, setUser }) => {
 const HomePage = ({ setPage, setSelectedBook, cart, setCart }) => {
   const [email, setEmail] = useState("");
   const [subbed, setSubbed] = useState(false);
-  const featured = BOOKS.filter(b=>b.featured);
+  const featured = LIVE_BOOKS.filter(b=>b.featured);
   return (
     <div>
       <section style={{padding:"80px 24px 100px",background:"var(--bg)",position:"relative",overflow:"hidden"}}>
@@ -349,7 +405,7 @@ const HomePage = ({ setPage, setSelectedBook, cart, setCart }) => {
             <button className="btn-outline" style={{padding:"10px 20px",fontSize:13}} onClick={()=>setPage("store")}>View All →</button>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:24}} className="book-grid">
-            {BOOKS.map(book=>(
+            {LIVE_BOOKS.map(book=>(
               <div key={book.id} className="card fade-in" style={{padding:20,cursor:"pointer",transition:"transform .2s,box-shadow .2s"}} onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-4px)";e.currentTarget.style.boxShadow="var(--shadow-lg)"}} onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow=""}} onClick={()=>{setSelectedBook(book);setPage("book");}}>
                 <div style={{display:"flex",gap:16,marginBottom:16}}>
                   <BookCover book={book} size="sm"/>
@@ -377,7 +433,7 @@ const HomePage = ({ setPage, setSelectedBook, cart, setCart }) => {
             <h2 className="playfair" style={{fontSize:"clamp(28px,3vw,42px)",fontWeight:700}}>Browse by Genre</h2>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:16}} className="cat-grid">
-            {CATEGORIES.map(cat=>(
+            {LIVE_CATS.map(cat=>(
               <div key={cat.name} className="card" style={{padding:"24px 16px",textAlign:"center",cursor:"pointer",transition:"all .2s"}} onMouseEnter={e=>{e.currentTarget.style.borderColor=cat.color;e.currentTarget.style.background=`${cat.color}11`;e.currentTarget.style.transform="translateY(-3px)"}} onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border)";e.currentTarget.style.background="var(--surface)";e.currentTarget.style.transform=""}} onClick={()=>setPage("store")}>
                 <div style={{fontSize:32,marginBottom:10}}>{cat.icon}</div>
                 <div style={{fontWeight:600,fontSize:14,marginBottom:4}}>{cat.name}</div>
@@ -464,7 +520,7 @@ const StorePage = ({ setPage, setSelectedBook, cart, setCart }) => {
   const [search, setSearch] = useState("");
   const [cat, setCat] = useState("All");
   const [sort, setSort] = useState("popular");
-  const filtered = BOOKS.filter(b=>(cat==="All"||b.category===cat)&&(b.title.toLowerCase().includes(search.toLowerCase())||b.author.toLowerCase().includes(search.toLowerCase()))).sort((a,b)=>sort==="price-asc"?a.price-b.price:sort==="price-desc"?b.price-a.price:sort==="rating"?b.rating-a.rating:b.reviews-a.reviews);
+  const filtered = LIVE_BOOKS.filter(b=>(cat==="All"||b.category===cat)&&(b.title.toLowerCase().includes(search.toLowerCase())||b.author.toLowerCase().includes(search.toLowerCase()))).sort((a,b)=>sort==="price-asc"?a.price-b.price:sort==="price-desc"?b.price-a.price:sort==="rating"?b.rating-a.rating:b.reviews-a.reviews);
   return (
     <div style={{maxWidth:1280,margin:"0 auto",padding:"40px 24px"}}>
       <div style={{marginBottom:40}}><h1 className="playfair" style={{fontSize:"clamp(28px,3vw,44px)",fontWeight:700,marginBottom:8}}>eBook Library</h1><p style={{color:"var(--text2)"}}>Browse our curated collection of premium digital books</p></div>
@@ -482,7 +538,7 @@ const StorePage = ({ setPage, setSelectedBook, cart, setCart }) => {
         </div>
         {/* Category filters — horizontal scroll on mobile */}
         <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:4,WebkitOverflowScrolling:"touch",scrollbarWidth:"none",msOverflowStyle:"none",marginBottom:12}}>
-          {["All",...CATEGORIES.map(c=>c.name)].map(c=>(
+          {["All",...LIVE_CATS.map(c=>c.name)].map(c=>(
             <button key={c} onClick={()=>setCat(c)} style={{padding:"8px 16px",borderRadius:20,fontSize:13,border:`1px solid ${cat===c?"var(--gold)":"var(--border)"}`,background:cat===c?"rgba(201,168,76,0.15)":"var(--surface2)",color:cat===c?"var(--gold)":"var(--text2)",cursor:"pointer",fontFamily:"DM Sans",whiteSpace:"nowrap",flexShrink:0,fontWeight:cat===c?600:400}}>{c}</button>
           ))}
         </div>
@@ -1038,7 +1094,7 @@ const AuthPage = ({ setPage, setUser }) => {
 
 const DashboardPage = ({ user, setPage }) => {
   const [tab, setTab] = useState("library");
-  const myBooks = BOOKS.slice(0,3);
+  const myBooks = LIVE_BOOKS.slice(0,3);
   return (
     <div style={{maxWidth:1100,margin:"0 auto",padding:"40px 24px"}}>
       <div style={{display:"flex",gap:20,marginBottom:32,alignItems:"center"}}>
@@ -1116,7 +1172,27 @@ const ContactPage = () => {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const handle = k => e => setForm({...form,[k]:e.target.value});
-  const submit = () => { if(!form.name||!form.email||!form.message) return; setLoading(true); setTimeout(()=>{setLoading(false);setSent(true);},1200); };
+  const submit = () => {
+    if(!form.name||!form.email||!form.message) return;
+    setLoading(true);
+    // Save to localStorage so admin can see it
+    try {
+      const msgs = JSON.parse(localStorage.getItem('dbs_msgs') || '[]');
+      const now = new Date();
+      msgs.unshift({
+        id: Date.now(),
+        name: form.name,
+        email: form.email,
+        subject: form.subject || 'General Inquiry',
+        message: form.message,
+        date: now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),
+        time: now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}),
+        read: false,
+      });
+      localStorage.setItem('dbs_msgs', JSON.stringify(msgs));
+    } catch(e) {}
+    setTimeout(()=>{setLoading(false);setSent(true);},1200);
+  };
   return (
     <div style={{maxWidth:1100,margin:"0 auto",padding:"60px 24px"}}>
       <div style={{textAlign:"center",marginBottom:56}}>
@@ -1244,7 +1320,7 @@ function App() {
     try{ const s=localStorage.getItem('dbs_theme'); return s!==null ? s==='dark' : true; }catch{ return true; }
   });
   const [cart, setCart] = useState([]);
-  const [selectedBook, setSelectedBook] = useState(BOOKS[0]);
+  const [selectedBook, setSelectedBook] = useState(LIVE_BOOKS[0]);
   const [user, setUser] = useState(null);
   useEffect(()=>{ try{ localStorage.setItem('dbs_theme', dark?'dark':'light'); }catch{} },[dark]);
   useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[page]);
