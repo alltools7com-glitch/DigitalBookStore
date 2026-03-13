@@ -1309,9 +1309,12 @@ const AuthPage = ({ setPage, setUser, redirectTo="dashboard" }) => {
       const msgs = {
         'auth/email-already-in-use': 'This email is already registered. Please sign in.',
         'auth/user-not-found': 'No account found with this email. Please sign up.',
-        'auth/wrong-password': 'Password galat hai!',
+        'auth/wrong-password': 'Incorrect password. Please try again.',
         'auth/invalid-email': 'Please enter a valid email address.',
         'auth/too-many-requests': 'Too many attempts. Please try again later.',
+        'auth/configuration-not-found': 'Firebase Auth is not enabled. Go to Firebase Console → Authentication → Get Started → enable Email/Password.',
+        'auth/network-request-failed': 'Network error. Please check your internet connection.',
+        'auth/invalid-credential': 'Incorrect email or password. Please try again.',
       };
       setErr(msgs[e.code] || e.message);
     }
