@@ -57,7 +57,7 @@
 </head>
 <body><div id="root"></div>
 
-<!-- ═══ FIREBASE CONFIG — Yahan apna Firebase config paste karo ═══ -->
+<!-- ═══ FIREBASE CONFIG — Paste your Firebase config here ═══ -->
 <script>
 // ─────────────────────────────────────────────────────────────────────────────
 // HOW TO SETUP FIREBASE (free, 2 minute):
@@ -383,7 +383,7 @@ const BooksTab = () => {
     setPdfName(file.name+"  ⏳ Loading...");
     const reader=new FileReader();
     reader.onload=ev=>{setFm(f=>({...f,_pdfData:ev.target.result,_pdfName:file.name}));setPdfName(file.name);};
-    reader.onerror=()=>{setPdfName("");alert("File read nahi hua, dobara try karo.");};
+    reader.onerror=()=>{setPdfName("");alert("Could not read the file. Please try again.");};
     reader.readAsDataURL(file);
   };
   const save=async()=>{
@@ -402,12 +402,12 @@ const BooksTab = () => {
           localStorage.setItem("dbs_pdf_"+bookId, fm._pdfData);
           localStorage.setItem("dbs_pdfname_"+bookId, fm._pdfName||"book.pdf");
         }
-      }catch(e){alert("PDF save nahi hua: "+e.message);}
+      }catch(e){alert("PDF could not be saved: "+e.message);}
     }
     const cleanFm={...fm};delete cleanFm._pdfData;delete cleanFm._pdfName;delete cleanFm._coverData;
     let newBooks;
-    if(mo==="add"){newBooks=[...books,{...cleanFm,id:bookId,coverUrl,price:parseFloat(fm.price)||9.99,originalPrice:parseFloat(fm.originalPrice)||parseFloat((parseFloat(fm.price)*1.8).toFixed(2)),pages:parseInt(fm.pages)||220,sales:0,rating:parseFloat(fm.rating)||5.0}];}
-    else{newBooks=books.map(b=>b.id===fm.id?{...b,...cleanFm,coverUrl,price:parseFloat(fm.price),originalPrice:parseFloat(fm.originalPrice)||b.originalPrice,pages:parseInt(fm.pages)||b.pages,rating:parseFloat(fm.rating)||b.rating}:b);}
+    if(mo==="add"){newBooks=[...books,{...cleanFm,id:bookId,coverUrl,pdfLink:fm.pdfLink||"",price:parseFloat(fm.price)||9.99,originalPrice:parseFloat(fm.originalPrice)||parseFloat((parseFloat(fm.price)*1.8).toFixed(2)),pages:parseInt(fm.pages)||220,sales:0,rating:parseFloat(fm.rating)||5.0}];}
+    else{newBooks=books.map(b=>b.id===fm.id?{...b,...cleanFm,coverUrl,pdfLink:fm.pdfLink||b.pdfLink||"",price:parseFloat(fm.price),originalPrice:parseFloat(fm.originalPrice)||b.originalPrice,pages:parseInt(fm.pages)||b.pages,rating:parseFloat(fm.rating)||b.rating}:b);}
     setBooks(newBooks);
     await DB.set('dbs_books',newBooks);
     setSaving(false);setMo(null);setTs(mo==="add"?"✅ Book added!":"💾 Book updated!");
@@ -489,9 +489,30 @@ const BooksTab = () => {
           </div>
         </div>
 
-        {/* ── PDF Upload ── */}
+        {/* ── PDF Upload OR Google Drive Link ── */}
         <div style={{background:"rgba(201,168,76,0.06)",border:"1px solid rgba(201,168,76,0.2)",borderRadius:10,padding:"12px 14px"}}>
-          <label>📄 PDF File Upload {fireDB&&<span style={{color:"var(--green)",fontSize:10,fontWeight:600,marginLeft:6}}>☁️ Firebase mein save hoga</span>}</label>
+          <label>📄 PDF — Upload file or paste a Google Drive link</label>
+
+          {/* Google Drive Link */}
+          <div style={{marginBottom:10}}>
+            <input
+              placeholder="🔗 Paste Google Drive link here (recommended for large files)"
+              value={fm.pdfLink||""}
+              onChange={e=>setFm({...fm,pdfLink:e.target.value})}
+              style={{fontSize:12,fontFamily:"DM Mono"}}
+            />
+            <div style={{fontSize:10,color:"var(--text3)",marginTop:4}}>
+              In Google Drive: Right-click file → Share → Anyone with the link → Copy link
+            </div>
+          </div>
+
+          {/* OR upload small PDF */}
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+            <div style={{flex:1,height:1,background:"var(--border)"}}/>
+            <span style={{fontSize:11,color:"var(--text3)"}}>or upload a small PDF directly (max 15MB)</span>
+            <div style={{flex:1,height:1,background:"var(--border)"}}/>
+          </div>
+
           <input id="pdfInput" type="file" accept=".pdf,application/pdf" style={{display:"none"}} onChange={handlePdfUpload}/>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
             <button className="btn btn-ghost" style={{flex:1,padding:"9px",fontSize:12}} onClick={()=>document.getElementById("pdfInput").click()}>
@@ -504,7 +525,7 @@ const BooksTab = () => {
                 <span>{pdfName.includes("⏳")?"⏳":"✅"}</span>
                 <span style={{fontFamily:"DM Mono",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pdfName}</span>
               </div>
-            : <div style={{fontSize:10,color:"var(--text3)",marginTop:6}}>PDF file • Max 15MB • Firebase mein save hoga (har device pe accessible)</div>
+            : null
           }
         </div>
 
@@ -779,7 +800,7 @@ const SettingsTab = ({onLogout}) => {
         <div style={{fontSize:22}}>{FB_ON?"🔥":"⚡"}</div>
         <div>
           <div style={{fontWeight:700,fontSize:14,color:FB_ON?"var(--green)":"var(--gold)"}}>{FB_ON?"Firebase Connected — Real-Time Sync Active ✅":"Firebase Not Connected — localStorage Only"}</div>
-          <div style={{fontSize:12,color:"var(--text3)",marginTop:2}}>{FB_ON?"Har browser mein instantly sync hoga":"Sirf isi browser mein data save hoga"}</div>
+          <div style={{fontSize:12,color:"var(--text3)",marginTop:2}}>{FB_ON?"Real-time sync across all browsers & devices":"Data saved in this browser only (no Firebase)"}</div>
         </div>
       </div>
       {!FB_ON&&<div style={{background:"rgba(201,168,76,0.07)",border:"1px solid rgba(201,168,76,0.2)",borderRadius:10,padding:"12px 14px",fontSize:12,color:"var(--text2)",lineHeight:1.8}}>
@@ -788,7 +809,7 @@ const SettingsTab = ({onLogout}) => {
         <div>2. Build → <strong>Realtime Database</strong> → Create → Test mode</div>
         <div>3. Build → <strong>Storage</strong> → Get started → Test mode</div>
         <div>4. Project Settings → Your apps → Web → Register → Copy config</div>
-        <div style={{marginTop:8}}>5. Admin.html file mein <strong style={{color:"var(--gold)"}}>FIREBASE_CONFIG</strong> section mein paste karo (line ~60)</div>
+        <div style={{marginTop:8}}>5. Paste the config into the <strong style={{color:"var(--gold)"}}>FIREBASE_CONFIG</strong> section in admin.html (around line 60)</div>
       </div>}
     </div>
     <div className="card" style={{padding:22,marginBottom:14}}>
@@ -818,7 +839,7 @@ const SettingsTab = ({onLogout}) => {
         <div><label>UPI ID</label><input value={payInfo.upi} onChange={e=>setPayInfo({...payInfo,upi:e.target.value})}/></div>
       </div>
       <div style={{marginTop:14,padding:"10px 14px",background:"rgba(201,168,76,0.06)",border:"1px solid rgba(201,168,76,0.15)",borderRadius:8,fontSize:12,color:"var(--text2)"}}>
-        💡 Yahan payment details update karo — store ke checkout page pe automatically reflect hongi
+        💡 Update your payment details here — changes will reflect automatically on the checkout page
       </div>
       <button className="btn btn-gold" style={{marginTop:14,padding:"10px 22px",fontSize:13}} onClick={()=>setToast("Payment settings saved!")}>Save Payment Settings</button>
     </div>
@@ -836,7 +857,7 @@ const SettingsTab = ({onLogout}) => {
       <p style={{fontSize:13,color:"var(--text2)",marginBottom:14}}>Irreversible actions. Proceed with caution.</p>
       <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
         <button className="btn btn-danger" style={{padding:"10px 20px",fontSize:13}} onClick={onLogout}>🚪 Logout from Admin</button>
-        <button className="btn btn-danger" style={{padding:"10px 20px",fontSize:13}} onClick={async()=>{if(window.confirm("Sab data reset hoga — INIT data wapas aa jayega. Sure ho?")){await DB.reset(['dbs_books','dbs_orders','dbs_customers','dbs_coupons','dbs_cats','dbs_msgs']);setToast("Data reset! Page refresh karo.");}}}>🔄 Reset All Data</button>
+        <button className="btn btn-danger" style={{padding:"10px 20px",fontSize:13}} onClick={async()=>{if(window.confirm("This will reset all data to defaults. This cannot be undone. Are you sure?")){await DB.reset(['dbs_books','dbs_orders','dbs_customers','dbs_coupons','dbs_cats','dbs_msgs']);setToast("Data reset successfully! Please refresh the page.");}}}>🔄 Reset All Data</button>
       </div>
     </div>
   </div>;
